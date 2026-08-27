@@ -1,0 +1,17 @@
+# Dependencies
+frontend/node_modules/
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# Next.js Build
+frontend/.next/
+frontend/out/
+
+# Environments and IDE
+.env
+.env.local
+.DS_Store
+.idea/
+.vscode/
+backend/catboost_info/
