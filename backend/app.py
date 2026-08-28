@@ -46,8 +46,8 @@ class StaySearchRequest(BaseModel):
     destination: str
     departure_date: str
     return_date: str
-    travelers: int
-    budget: float
+    travelers: int = Field(..., ge=1, description="Number of travelers must be at least 1")
+    budget: float = Field(..., gt=0, description="Budget must be greater than 0")
     transport_mode: Optional[str] = "flight"
     vehicle_query: Optional[str] = ""
 
@@ -86,8 +86,8 @@ class PlanRequest(BaseModel):
     destination: str
     departure_date: str
     return_date: str
-    travelers: int
-    budget: float
+    travelers: int = Field(..., ge=1, description="Number of travelers must be at least 1")
+    budget: float = Field(..., gt=0, description="Budget must be greater than 0")
     selected_transit: SelectedTransit
     selected_hotel: SelectedHotel
     selected_midway_hotel: Optional[SelectedHotel] = None
@@ -213,9 +213,12 @@ def plan_trip(req: PlanRequest):
     try:
         dep = datetime.strptime(req.departure_date, "%Y-%m-%d")
         ret = datetime.strptime(req.return_date, "%Y-%m-%d")
-        delta = (ret - dep).days
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format.")
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+    delta = (ret - dep).days
+    if delta <= 0:
+        raise HTTPException(status_code=400, detail="Return date must be after departure date.")
 
     geo = geocode_destination(req.destination)
     if not geo:
@@ -325,7 +328,8 @@ def plan_trip(req: PlanRequest):
         midway_hotel=fixed_midway,
         travel_class=req.travel_class,
         toll_cost=req.selected_transit.total_price_inr if req.transport_mode == "self-drive" else 0,
-        pace=req.pace
+        pace=req.pace,
+        lang=req.lang or "en"
     )
 
     if itinerary["status"] == "Infeasible":

@@ -56,18 +56,19 @@ def parse_time(val) -> int:
 def calculate_trip_cost(transit_base, hotel_base, nights, rooms, days, group_size, travel_class="economy", tolls=0, attractions=0):
     mult = CLASS_MULTIPLIERS.get(travel_class, 1.0)
     transit_cost = int(transit_base * mult)
+    toll_cost = int(tolls)  # Tolls are NOT multiplied by travel class
     hotel_cost = int(hotel_base * nights * rooms)
     food_cost = int(600 * group_size * days)
     return {
         "transit": transit_cost,
         "hotel": hotel_cost,
         "food": food_cost,
-        "toll": int(tolls),
+        "toll": toll_cost,
         "activities": int(attractions),
-        "total": transit_cost + hotel_cost + food_cost + int(tolls) + int(attractions)
+        "total": transit_cost + hotel_cost + food_cost + toll_cost + int(attractions)
     }
 
-def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, restaurant_candidates, transit_estimate, group_size, midway_hotel=None, travel_class="economy", toll_cost=0, pace="moderate"):
+def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, restaurant_candidates, transit_estimate, group_size, midway_hotel=None, travel_class="economy", toll_cost=0, pace="moderate", lang="en"):
     """
     Solves for the optimal itinerary using Google OR-Tools CP-SAT.
     """
@@ -75,6 +76,36 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
     rooms_needed = max(1, (group_size + 1) // 2)
 
     p_cfg = PACE_CONFIG.get(pace, PACE_CONFIG["moderate"])
+
+    DESCRIPTIONS = {
+        "en": {
+            "start_drive": "Depart from starting city origin and begin driving on the highway.",
+            "tea_stop": "Short break to rest, stretch, and get tea/snacks.",
+            "highway_lunch": "Stop for fresh local regional lunch on the highway.",
+            "arrive_hotel": "Arrive at hotel stay coordinates and drop bags.",
+            "checkin": "Arrive at destination, complete check-in and drop luggage.",
+            "lunch": "Enjoy traditional regional food thali.",
+            "midway_checkout": "Depart midway stopover hotel and continue driving towards destination.",
+            "midway_lunch": "Regional thali lunch break at NH highway food plaza.",
+            "midway_arrive": "Arrive at final destination city, check-in to destination stay.",
+            "dinner": "Relax and enjoy dinner before returning to hotel.",
+            "checkout": "Wrap up checkout and board return transit."
+        },
+        "hi": {
+            "start_drive": "शुरुआती शहर से निकलें और हाईवे पर ड्राइव शुरू करें।",
+            "tea_stop": "आराम करने, चाय-नाश्ता लेने के लिए छोटा ब्रेक।",
+            "highway_lunch": "हाईवे पर ताज़ा स्थानीय भोजन के लिए रुकें।",
+            "arrive_hotel": "होटल पहुँचें और सामान रखें।",
+            "checkin": "गंतव्य पर पहुँचें, चेक-इन करें और सामान रखें।",
+            "lunch": "पारंपरिक स्थानीय भोजन थाली का आनंद लें।",
+            "midway_checkout": "मिडवे होटल से चेकआउट करें और गंतव्य की ओर ड्राइव जारी रखें।",
+            "midway_lunch": "NH हाईवे फूड प्लाज़ा पर रीजनल थाली लंच ब्रेक।",
+            "midway_arrive": "अंतिम गंतव्य शहर पहुँचें, डेस्टिनेशन होटल में चेक-इन करें।",
+            "dinner": "होटल लौटने से पहले डिनर का आनंद लें।",
+            "checkout": "चेकआउट करें और वापसी ट्रांज़िट बोर्ड करें।"
+        }
+    }
+    desc = DESCRIPTIONS.get(lang, DESCRIPTIONS["en"])
 
     # 1. Pre-Solver Feasibility Check
     min_hotel_nightly = min(int(h["cost_inr"]) for h in hotel_candidates) if hotel_candidates else 0
@@ -177,10 +208,11 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
 
     food_cost = int(600 * group_size * days)
     mult = CLASS_MULTIPLIERS.get(travel_class, 1.0)
-    transit_cost = int(transit_estimate["cost_inr"] * mult)
+    transit_fare_cost = int(transit_estimate["cost_inr"] * mult)
+    toll_cost_fixed = int(toll_cost)  # Tolls stay constant regardless of class
 
     total_cost = model.NewIntVar(0, int(budget) * 100, 'total_cost')
-    model.Add(total_cost == (hotel_cost_sum + attraction_cost_sum + food_cost + transit_cost))
+    model.Add(total_cost == (hotel_cost_sum + attraction_cost_sum + food_cost + transit_fare_cost + toll_cost_fixed))
     model.Add(total_cost <= int(budget))
 
     # 4. Objective
@@ -221,7 +253,8 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
 
         itinerary["cost_breakdown"] = {
             "stays": float(solver.Value(hotel_cost_sum)),
-            "transport": transit_cost,
+            "transport": transit_fare_cost,
+            "toll": toll_cost_fixed,
             "food": food_cost,
             "activities": float(solver.Value(attraction_cost_sum)),
             "allocated_budget": budget,
@@ -243,7 +276,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": "08:00",
                         "end_time": "11:30",
                         "cost_inr": 0.0,
-                        "description": "Depart from starting city origin and begin driving on the highway."
+                        "description": desc["start_drive"]
                     })
                     day_schedule.append({
                         "name": "Highway Tea & Rest Stop Plaza",
@@ -251,7 +284,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": "11:30",
                         "end_time": "12:00",
                         "cost_inr": 100.0,
-                        "description": "Short break to rest, stretch, and get tea/snacks."
+                        "description": desc["tea_stop"]
                     })
                     day_schedule.append({
                         "name": "Roadside Dhaba Highway Lunch",
@@ -259,7 +292,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": "13:30",
                         "end_time": "14:30",
                         "cost_inr": 300.0,
-                        "description": "Stop for fresh local regional lunch on the highway."
+                        "description": desc["highway_lunch"]
                     })
                     hotel_name = midway_hotel["name"] if midway_hotel else (selected_hotel_obj["name"] if selected_hotel_obj else "Destination Hotel")
                     day_schedule.append({
@@ -268,7 +301,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": "17:30",
                         "end_time": "18:30",
                         "cost_inr": 0.0,
-                        "description": "Arrive at hotel stay coordinates and drop bags."
+                        "description": desc["arrive_hotel"]
                     })
                 else:
                     hotel_name = selected_hotel_obj["name"] if selected_hotel_obj else "Accommodation"
@@ -278,7 +311,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": "12:00",
                         "end_time": "13:00",
                         "cost_inr": 0.0,
-                        "description": "Arrive at destination, complete check-in and drop luggage."
+                        "description": desc["checkin"]
                     })
                     day_schedule.append({
                         "name": "Lunch Break (Local Eatery)",
@@ -286,7 +319,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": "14:15",
                         "end_time": "15:00",
                         "cost_inr": 300.0,
-                        "description": "Enjoy traditional regional food thali."
+                        "description": desc["lunch"]
                     })
 
             # Day 2: Midway checkout & drive
@@ -298,7 +331,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                     "start_time": "08:00",
                     "end_time": "12:00",
                     "cost_inr": 0.0,
-                    "description": "Depart midway stopover hotel and continue driving towards destination."
+                    "description": desc["midway_checkout"]
                 })
                 day_schedule.append({
                     "name": "Highway Dhaba Lunch Break",
@@ -306,7 +339,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                     "start_time": "13:00",
                     "end_time": "14:00",
                     "cost_inr": 300.0,
-                    "description": "Regional thali lunch break at NH highway food plaza."
+                    "description": desc["midway_lunch"]
                 })
                 day_schedule.append({
                     "name": f"Arrive & Check-in at Destination Hotel: {dest_name}",
@@ -314,7 +347,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                     "start_time": "17:00",
                     "end_time": "18:00",
                     "cost_inr": 0.0,
-                    "description": "Arrive at final destination city, check-in to destination stay."
+                    "description": desc["midway_arrive"]
                 })
             else:
                 if not (d == 0 and is_road_trip):
@@ -324,7 +357,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": "14:15",
                         "end_time": "15:00",
                         "cost_inr": 300.0,
-                        "description": "Enjoy traditional regional food thali."
+                        "description": desc["lunch"]
                     })
 
             # Attractions
@@ -357,7 +390,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                 "start_time": "20:00",
                 "end_time": "21:30",
                 "cost_inr": 300.0,
-                "description": "Relax and enjoy dinner before returning to hotel."
+                "description": desc["dinner"]
             })
 
             if d == days - 1:
@@ -367,7 +400,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                     "start_time": "21:30",
                     "end_time": "23:59",
                     "cost_inr": 0.0,
-                    "description": "Wrap up checkout and board return transit."
+                    "description": desc["checkout"]
                 })
 
             itinerary["days"].append({

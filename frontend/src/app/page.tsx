@@ -356,6 +356,27 @@ export default function Home() {
     }
   }, [origin, destination, depDate, retDate, travelers, budget, selectedTransit, selectedHotel, selectedMidwayHotel, travelClass, pace, interests, itinerary, step]);
 
+  // Invalidate dependent state when core trip inputs change
+  const tripFingerprint = `${origin}|${destination}|${depDate}|${retDate}|${travelers}|${budget}`;
+  const [lastFingerprint, setLastFingerprint] = useState<string>("");
+  useEffect(() => {
+    if (lastFingerprint && tripFingerprint !== lastFingerprint) {
+      // Core inputs changed — clear stale downstream state
+      setSelectedTransit(null);
+      setSelectedHotel(null);
+      setSelectedMidwayHotel(null);
+      setItinerary(null);
+      setSelectedRestStops([]);
+      setTransits([]);
+      setHotels([]);
+      setMidwayHotels([]);
+      if (step > 1) {
+        setStep(1);
+      }
+    }
+    setLastFingerprint(tripFingerprint);
+  }, [tripFingerprint]);
+
   const handleInterestToggle = (id: string) => {
     if (interests.includes(id)) {
       setInterests(interests.filter((x) => x !== id));
