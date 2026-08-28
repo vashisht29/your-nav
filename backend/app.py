@@ -4,11 +4,12 @@ import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 from dotenv import load_dotenv
 
 from osm_service import geocode_destination, fetch_osm_candidates, fetch_nearby_emergency_services, search_transit_candidates, find_midway_city, lookup_vehicle_specs
+from real_providers import get_hotels_with_failover, get_sights_with_failover
 from ml_pipeline import PriceImputer, SentimentExtractor, PersonaSegmenter, CatBoostRanker
 from solver import solve_itinerary
 from llm_layer import generate_itinerary_explanation
@@ -73,6 +74,13 @@ class SelectedHotel(BaseModel):
     star_rating: float
     is_estimated: bool
 
+class Waypoint(BaseModel):
+    id: str
+    type: str
+    name: str
+    lat: float
+    lng: float
+
 class PlanRequest(BaseModel):
     origin: str
     destination: str
@@ -89,6 +97,8 @@ class PlanRequest(BaseModel):
     transport_mode: str
     fuel_type: Optional[str] = "petrol"
     vehicle_query: Optional[str] = ""
+    travel_class: Optional[str] = "economy"
+    waypoints: Optional[List[Waypoint]] = []
 
 @app.get("/api/health")
 def health():
@@ -132,9 +142,9 @@ def get_stays(req: StaySearchRequest):
     if not geo:
         raise HTTPException(status_code=400, detail="Could not geocode destination location.")
 
-    candidates = fetch_osm_candidates(geo["lat"], geo["lng"], req.destination.strip().title())
-    raw_hotels = candidates["hotels"]
-    raw_attractions = candidates["attractions"]
+    raw_hotels = get_hotels_with_failover(geo["lat"], geo["lng"], req.destination.strip().title())
+    sights_data = get_sights_with_failover(geo["lat"], geo["lng"], req.destination.strip().title())
+    raw_attractions = sights_data["attractions"]
 
     imputed_prices = price_imputer.train_and_impute(raw_hotels, raw_attractions)
 
@@ -176,8 +186,8 @@ def get_stays(req: StaySearchRequest):
             # Recommends Udaipur / Varanasi / Hyderabad stopover city
             mid_city, mid_lat, mid_lng = find_midway_city(req.origin, req.destination)
             midway_city_name = mid_city
-            mid_osm = fetch_osm_candidates(mid_lat, mid_lng, mid_city)
-            for mh in mid_osm["hotels"]:
+            mid_hotels = get_hotels_with_failover(mid_lat, mid_lng, mid_city)
+            for mh in mid_hotels:
                 midway_hotels.append({
                     "id": mh["id"],
                     "name": f"{mh['name']} ({mid_city} Midway)",
@@ -214,10 +224,10 @@ def plan_trip(req: PlanRequest):
     dest_lat = geo["lat"]
     dest_lng = geo["lng"]
 
-    candidates = fetch_osm_candidates(dest_lat, dest_lng, req.destination.strip().title())
-    raw_hotels = candidates["hotels"]
-    raw_attractions = candidates["attractions"]
-    raw_restaurants = candidates["restaurants"]
+    raw_hotels = get_hotels_with_failover(dest_lat, dest_lng, req.destination.strip().title())
+    sights_data = get_sights_with_failover(dest_lat, dest_lng, req.destination.strip().title())
+    raw_attractions = sights_data["attractions"]
+    raw_restaurants = sights_data["restaurants"]
 
     attraction_candidates = []
     for a in raw_attractions:
@@ -275,16 +285,47 @@ def plan_trip(req: PlanRequest):
         "duration_hrs": req.selected_transit.duration_hrs
     }
 
+    if req.transport_mode == "self-drive" and req.waypoints:
+        orig_geo = geocode_destination(req.origin)
+        if orig_geo:
+            curr_lat = orig_geo["lat"]
+            curr_lng = orig_geo["lng"]
+            recalc_dist = 0.0
+            for wp in req.waypoints:
+                recalc_dist += (abs(curr_lat - wp.lat) + abs(curr_lng - wp.lng)) * 111.0
+                curr_lat = wp.lat
+                curr_lng = wp.lng
+            recalc_dist += (abs(curr_lat - dest_lat) + abs(curr_lng - dest_lng)) * 111.0
+            
+            from osm_service import lookup_vehicle_specs, get_fuel_price_by_location
+            v_specs = lookup_vehicle_specs(req.vehicle_query or "")
+            price_unit = get_fuel_price_by_location(req.destination, req.fuel_type or "petrol")
+            consumption = (recalc_dist / 100.0) * v_specs["consumption_rate"]
+            new_fuel_cost = consumption * price_unit
+            
+            base_toll = req.selected_transit.total_price_inr - (req.selected_transit.estimated_fuel_cost_inr or 0.0)
+            new_total_transit = new_fuel_cost + base_toll
+            new_duration_hrs = round((recalc_dist / 55.0) + 0.5, 1) + (len(req.waypoints) * 0.75)
+            
+            transit_estimate = {
+                "cost_inr": round(new_total_transit, 2),
+                "duration_hrs": new_duration_hrs
+            }
+
     # Solve Optimization (OR-Tools)
+    attraction_limit = 12 if delta <= 3 else (9 if delta <= 5 else 6)
     itinerary = solve_itinerary(
         days=delta,
         budget=req.budget,
         hotel_candidates=[fixed_hotel],
-        attraction_candidates=scored_attractions[:12],
+        attraction_candidates=scored_attractions[:attraction_limit],
         restaurant_candidates=raw_restaurants,
         transit_estimate=transit_estimate,
         group_size=req.travelers,
-        midway_hotel=fixed_midway
+        midway_hotel=fixed_midway,
+        travel_class=req.travel_class,
+        toll_cost=req.selected_transit.total_price_inr if req.transport_mode == "self-drive" else 0,
+        pace=req.pace
     )
 
     if itinerary["status"] == "Infeasible":
@@ -384,6 +425,76 @@ async def process_payment(request: Request):
         "status": "success",
         "payment_id": payment_id,
         "message": "Payment verified idempotently."
+    }
+
+class TripEventRequest(BaseModel):
+    event: str
+    delay_minutes: int
+    current_days: List[Dict]
+
+@app.post("/api/trip/events")
+def trigger_trip_event(req: TripEventRequest):
+    from solver import parse_time
+    shifted_days = []
+    
+    for day in req.current_days:
+        day_number = day.get("day_number", 1)
+        schedule = day.get("schedule", [])
+        new_schedule = []
+        
+        for item in schedule:
+            category = item.get("category", "")
+            # Only shift items on Day 1 (when flight arrival delay occurs)
+            if day_number == 1 and category in ["attraction", "logistics", "food"]:
+                start_str = item.get("start_time", "09:00")
+                duration = item.get("duration_hrs", 1.5)
+                
+                orig_start_min = parse_time(start_str)
+                new_start_min = orig_start_min + req.delay_minutes
+                
+                new_start_hrs = (new_start_min // 60) % 24
+                new_start_mins = new_start_min % 60
+                new_start_time = f"{new_start_hrs:02d}:{new_start_mins:02d}"
+                
+                new_end_min = new_start_min + int(duration * 60)
+                new_end_hrs = (new_end_min // 60) % 24
+                new_end_mins = new_end_min % 60
+                new_end_time = f"{new_end_hrs:02d}:{new_end_mins:02d}"
+                
+                is_closed = False
+                if category == "attraction":
+                    close_min = int(item.get("closing_hour", 18) * 60)
+                    if new_end_min > close_min:
+                        is_closed = True
+                
+                updated_item = {
+                    **item,
+                    "start_time": new_start_time,
+                    "end_time": new_end_time,
+                }
+                
+                if is_closed:
+                    updated_item["name"] = f"⚠️ {item['name']} (CLOSED)"
+                    updated_item["description"] = f"Shifted past closing hours ({item.get('closing_hour', 18)}:00) due to flight delay."
+                    updated_item["is_closed_alert"] = True
+                
+                new_schedule.append(updated_item)
+            else:
+                new_schedule.append(item)
+                
+        if day_number == 1:
+            new_schedule.sort(key=lambda x: parse_time(x.get("start_time", "09:00")))
+            
+        shifted_days.append({
+            "day_number": day_number,
+            "schedule": new_schedule
+        })
+        
+    return {
+        "status": "Success",
+        "itinerary": {
+            "days": shifted_days
+        }
     }
 
 if __name__ == "__main__":

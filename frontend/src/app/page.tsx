@@ -276,6 +276,8 @@ export default function Home() {
   const [inspectingTransit, setInspectingTransit] = useState<any>(null);
   const [inspectingHotel, setInspectingHotel] = useState<any>(null);
   const [activeModalImage, setActiveModalImage] = useState<string>("");
+  const [travelClass, setTravelClass] = useState("economy");
+  const [delayLoading, setDelayLoading] = useState(false);
   const [showRouteFactors, setShowRouteFactors] = useState(false);
 
   useEffect(() => {
@@ -302,6 +304,57 @@ export default function Home() {
   const [sosType, setSosType] = useState("");
   const [sosLoading, setSosLoading] = useState(false);
   const [emergencyServices, setEmergencyServices] = useState<any[]>([]);
+
+  // Caching & Persistence hydration (Next.js SSR safe)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("smart_ai_trip_state");
+      if (cached) {
+        try {
+          const state = JSON.parse(cached);
+          if (state.origin) setOrigin(state.origin);
+          if (state.destination) setDestination(state.destination);
+          if (state.depDate) setDepDate(state.depDate);
+          if (state.retDate) setRetDate(state.retDate);
+          if (state.travelers) setTravelers(state.travelers);
+          if (state.budget) setBudget(state.budget);
+          if (state.selectedTransit) setSelectedTransit(state.selectedTransit);
+          if (state.selectedHotel) setSelectedHotel(state.selectedHotel);
+          if (state.selectedMidwayHotel) setSelectedMidwayHotel(state.selectedMidwayHotel);
+          if (state.travelClass) setTravelClass(state.travelClass);
+          if (state.pace) setPace(state.pace);
+          if (state.interests) setInterests(state.interests);
+          if (state.itinerary) setItinerary(state.itinerary);
+          if (state.step) setStep(state.step);
+        } catch (e) {
+          console.error("Hydration error:", e);
+        }
+      }
+    }
+  }, []);
+
+  // Save changes automatically
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stateObj = {
+        origin,
+        destination,
+        depDate,
+        retDate,
+        travelers,
+        budget,
+        selectedTransit,
+        selectedHotel,
+        selectedMidwayHotel,
+        travelClass,
+        pace,
+        interests,
+        itinerary,
+        step
+      };
+      localStorage.setItem("smart_ai_trip_state", JSON.stringify(stateObj));
+    }
+  }, [origin, destination, depDate, retDate, travelers, budget, selectedTransit, selectedHotel, selectedMidwayHotel, travelClass, pace, interests, itinerary, step]);
 
   const handleInterestToggle = (id: string) => {
     if (interests.includes(id)) {
@@ -427,7 +480,14 @@ export default function Home() {
           lang,
           transport_mode: transportMode,
           fuel_type: derivedSpecs.fuel_type,
-          vehicle_query: vehicleQuery
+          travel_class: travelClass,
+          waypoints: selectedRestStops.map(s => ({
+            id: s.name,
+            type: "rest_stop",
+            name: s.name,
+            lat: s.lat || 28.0,
+            lng: s.lng || 76.0
+          }))
         })
       });
       const data = await res.json();
@@ -447,6 +507,33 @@ export default function Home() {
       setErrorMsg("Connection failed during optimization solve.");
     } finally {
       setSolveLoading(false);
+    }
+  };
+
+  const handleSimulateDelay = async () => {
+    if (!itinerary || !itinerary.days) return;
+    setDelayLoading(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/trip/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "flight_delay",
+          delay_minutes: 180,
+          current_days: itinerary.days
+        })
+      });
+      const data = await res.json();
+      if (res.status === 200 && data.itinerary) {
+        setItinerary({
+          ...itinerary,
+          days: data.itinerary.days
+        });
+      }
+    } catch (e) {
+      console.error("Delay simulation failed:", e);
+    } finally {
+      setDelayLoading(false);
     }
   };
 
@@ -728,6 +815,7 @@ export default function Home() {
                   </label>
                   {transportMode === "self-drive" ? (
                     <select
+                      key="self-drive-select"
                       value={derivedSpecs.fuel_type}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -745,8 +833,13 @@ export default function Home() {
                       <option value="ev_charge_kwh">Electric Vehicle (EV)</option>
                     </select>
                   ) : (
-                    <select className="w-full p-2.5 rounded-lg border text-xs font-bold focus:ring-2 focus:ring-primary-500">
-                      <option value="standard">Standard Economy</option>
+                    <select
+                      key="transit-class-select"
+                      value={travelClass}
+                      onChange={(e) => setTravelClass(e.target.value)}
+                      className="w-full p-2.5 rounded-lg border text-xs font-bold focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="economy">Standard Economy</option>
                       <option value="premium">Premium First Class</option>
                     </select>
                   )}
@@ -1012,7 +1105,16 @@ export default function Home() {
                         <span className="font-extrabold text-slate-700 flex-shrink-0">₹{h.total_stay_cost_inr}</span>
                       </div>
                       <div className="flex justify-between text-[10px] text-slate-400 mt-2">
-                        <span>{h.star_rating} ⭐ {h.is_estimated ? `(${t.estimatedBadge})` : ""}</span>
+                        <span>
+                          {h.star_rating} ⭐{" "}
+                          {h.id.startsWith("demo_") ? (
+                            <span className="bg-emerald-100 text-emerald-800 font-bold px-1 rounded text-[8px] uppercase">DEMO DATA</span>
+                          ) : h.is_estimated ? (
+                            <span className="bg-orange-100 text-orange-800 font-bold px-1 rounded text-[8px] uppercase">ESTIMATED DATA</span>
+                          ) : (
+                            <span className="bg-sky-100 text-sky-800 font-bold px-1 rounded text-[8px] uppercase">LIVE DATA</span>
+                          )}
+                        </span>
                         <span>₹{h.cost_inr} / night</span>
                       </div>
                       <div className="flex gap-2 mt-2.5">
@@ -1241,7 +1343,16 @@ export default function Home() {
                 
                 {/* Timeline Accordion with Flexible Day Slots */}
                 <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-3">
-                  <h3 className="text-sm font-extrabold text-slate-800 border-b pb-2">Itinerary Timeline</h3>
+                  <div className="flex justify-between items-center border-b pb-2">
+                    <h3 className="text-sm font-extrabold text-slate-800">Itinerary Timeline</h3>
+                    <button
+                      disabled={delayLoading}
+                      onClick={handleSimulateDelay}
+                      className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 text-[10px] font-bold rounded-lg border border-red-200 flex items-center gap-1 transition-all disabled:opacity-50"
+                    >
+                      {delayLoading ? "Simulating Delay..." : "⚠️ Simulate 3-Hour Flight Delay"}
+                    </button>
+                  </div>
                   <div className="space-y-2">
                     {itinerary.days.map((day: any) => {
                       const isExpanded = expandedDay === day.day_number;
@@ -1281,10 +1392,10 @@ export default function Home() {
                                           </span>
                                           <span className="text-[10px] text-slate-400">({item.start_time})</span>
                                         </div>
-                                        <h5 className="font-extrabold text-slate-800 text-xs flex items-center gap-1 truncate">
-                                          {item.name} {item.rating ? <span className="text-[10px] text-amber-500 font-normal flex-shrink-0">({item.rating} ⭐)</span> : ""}
+                                        <h5 className={`font-extrabold text-xs flex items-center gap-1 truncate ${item.is_closed_alert ? "text-red-600" : "text-slate-800"}`}>
+                                          {item.name} {item.rating ? <span className="text-[10px] text-amber-500 font-normal flex-shrink-0">({(item.rating < 1.0 ? item.rating * 5.0 : item.rating).toFixed(1)} ⭐)</span> : ""}
                                         </h5>
-                                        {item.description && <p className="text-[10px] text-slate-400">{item.description}</p>}
+                                        {item.description && <p className={`text-[10px] ${item.is_closed_alert ? "text-red-500 font-semibold" : "text-slate-400"}`}>{item.description}</p>}
                                       </div>
                                     </div>
                                     {item.cost_inr > 0 && (

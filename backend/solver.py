@@ -1,15 +1,107 @@
-# backend/solver.py
-
 from ortools.sat.python import cp_model
 
-def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, restaurant_candidates, transit_estimate, group_size, midway_hotel=None):
+CLASS_MULTIPLIERS = {
+    "economy": 1.0,
+    "premium": 1.5,
+    "first_class": 1.8
+}
+
+PACE_CONFIG = {
+    "relaxed": {
+        "max_sights_normal": 2,
+        "max_sights_road": 1,
+        "travel_buffer_min": 45
+    },
+    "moderate": {
+        "max_sights_normal": 3,
+        "max_sights_road": 2,
+        "travel_buffer_min": 30
+    },
+    "hectic": {
+        "max_sights_normal": 5,
+        "max_sights_road": 3,
+        "travel_buffer_min": 15
+    }
+}
+
+def parse_time(val) -> int:
+    if not val:
+        return 540 # Default 09:00 AM in minutes
+    val_str = str(val).strip().lower()
+    if "-" in val_str:
+        val_str = val_str.split("-")[0].strip()
+    try:
+        if "pm" in val_str:
+            parts = val_str.replace("pm", "").strip().split(":")
+            hrs = int(parts[0])
+            mins = int(parts[1]) if len(parts) > 1 else 0
+            if hrs < 12:
+                hrs += 12
+            return hrs * 60 + mins
+        elif "am" in val_str:
+            parts = val_str.replace("am", "").strip().split(":")
+            hrs = int(parts[0])
+            mins = int(parts[1]) if len(parts) > 1 else 0
+            if hrs == 12:
+                hrs = 0
+            return hrs * 60 + mins
+        else:
+            parts = val_str.split(":")
+            hrs = int(parts[0])
+            mins = int(parts[1]) if len(parts) > 1 else 0
+            return hrs * 60 + mins
+    except Exception:
+        return 540 # Safe fallback on format errors
+
+def calculate_trip_cost(transit_base, hotel_base, nights, rooms, days, group_size, travel_class="economy", tolls=0, attractions=0):
+    mult = CLASS_MULTIPLIERS.get(travel_class, 1.0)
+    transit_cost = int(transit_base * mult)
+    hotel_cost = int(hotel_base * nights * rooms)
+    food_cost = int(600 * group_size * days)
+    return {
+        "transit": transit_cost,
+        "hotel": hotel_cost,
+        "food": food_cost,
+        "toll": int(tolls),
+        "activities": int(attractions),
+        "total": transit_cost + hotel_cost + food_cost + int(tolls) + int(attractions)
+    }
+
+def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, restaurant_candidates, transit_estimate, group_size, midway_hotel=None, travel_class="economy", toll_cost=0, pace="moderate"):
     """
     Solves for the optimal itinerary using Google OR-Tools CP-SAT.
     """
-    model = cp_model.CpModel()
-
     num_nights = days
     rooms_needed = max(1, (group_size + 1) // 2)
+
+    p_cfg = PACE_CONFIG.get(pace, PACE_CONFIG["moderate"])
+
+    # 1. Pre-Solver Feasibility Check
+    min_hotel_nightly = min(int(h["cost_inr"]) for h in hotel_candidates) if hotel_candidates else 0
+    baseline_calc = calculate_trip_cost(
+        transit_base=transit_estimate["cost_inr"],
+        hotel_base=min_hotel_nightly,
+        nights=num_nights,
+        rooms=rooms_needed,
+        days=days,
+        group_size=group_size,
+        travel_class=travel_class,
+        tolls=toll_cost,
+        attractions=0
+    )
+
+    if baseline_calc["total"] > budget:
+        return {
+            "status": "Infeasible",
+            "reason": "BUDGET_TOO_LOW",
+            "message": f"Your selected travel class and accommodations exceed the available ₹{budget} budget.",
+            "minimum_required_budget": baseline_calc["total"],
+            "user_budget": budget,
+            "cost_breakdown": baseline_calc,
+            "days": []
+        }
+
+    model = cp_model.CpModel()
 
     # 1. Decision Variables
     x_a = {}
@@ -33,8 +125,8 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
         model.Add(sum(x_a[(i, d)] for d in range(days)) <= 1)
 
     for d in range(days):
-        # On road transit days, reduce sightseeing slots to give time for driving
-        max_sights = 1 if (d == 0 or (d == 1 and midway_hotel)) else 3
+        is_road_day = (d == 0 or (d == 1 and midway_hotel))
+        max_sights = p_cfg["max_sights_road"] if is_road_day else p_cfg["max_sights_normal"]
         model.Add(sum(x_a[(i, d)] for i in range(len(attraction_candidates))) <= max_sights)
 
     # Opening hours constraints
@@ -47,7 +139,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
         model.Add(start_time[i] + dur_min <= close_min)
 
     # Overlap protection
-    travel_buffer = 30
+    travel_buffer = p_cfg["travel_buffer_min"]
     for d in range(days):
         for i in range(len(attraction_candidates)):
             for j in range(i + 1, len(attraction_candidates)):
@@ -84,7 +176,8 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
     )
 
     food_cost = int(600 * group_size * days)
-    transit_cost = int(transit_estimate["cost_inr"])
+    mult = CLASS_MULTIPLIERS.get(travel_class, 1.0)
+    transit_cost = int(transit_estimate["cost_inr"] * mult)
 
     total_cost = model.NewIntVar(0, int(budget) * 100, 'total_cost')
     model.Add(total_cost == (hotel_cost_sum + attraction_cost_sum + food_cost + transit_cost))

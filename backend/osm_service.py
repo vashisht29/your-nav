@@ -172,65 +172,22 @@ def search_transit_candidates(origin: str, destination: str, departure_date: str
         dest_port = find_closest_airport(dest_geo["lat"], dest_geo["lng"])
         is_short = dist_km < 250.0
 
-        airlines = [
-            {"name": "IndiGo", "code": "6E", "base_price": 3200.0, "delay_rate": "8%", "baggage": "15 kg cabin, 7 kg hand"},
-            {"name": "Air India", "code": "AI", "base_price": 3800.0, "delay_rate": "15%", "baggage": "25 kg cabin, 7 kg hand"},
-            {"name": "Akasa Air", "code": "QP", "base_price": 2900.0, "delay_rate": "5%", "baggage": "15 kg cabin, 7 kg hand"}
-        ]
-
-        flights = []
-        for idx, air in enumerate(airlines):
-            dist_factor = max(0.8, dist_km / 800.0)
-            single_price = round((air["base_price"] * dist_factor) + random.randint(-300, 500), 2)
-            dep_hour = random.choice([6, 9, 14, 19])
-            dur_hrs = round((dist_km / 650.0) + 0.5, 1)
-
-            flights.append({
-                "id": f"f_{air['code']}_{100 + idx * 25}",
-                "airline": air["name"],
-                "flight_number": f"{air['code']}-{250 + idx * 12}",
-                "origin_airport": orig_port["code"] if orig_port else "DEL",
-                "destination_airport": dest_port["code"] if dest_port else "JAI",
-                "departure_time": f"{dep_hour:02d}:30",
-                "arrival_time": f"{((dep_hour + int(dur_hrs)) % 24):02d}:45",
-                "duration_hrs": dur_hrs,
-                "single_ticket_price": single_price,
-                "total_price_inr": single_price * travelers,
-                "is_short_route_warning": is_short,
-                "delay_rate": air["delay_rate"],
-                "baggage": air["baggage"],
-                "reviews": [f"Excellent services and on-time arrival.", "Seats are tight but tolerable."]
-            })
-        return flights
+        from demo_registry import DEMO_FLIGHTS
+        return [{
+            **f,
+            "origin_airport": orig_port["code"] if orig_port else "DEL",
+            "destination_airport": dest_port["code"] if dest_port else "JAI",
+            "total_price_inr": f["single_ticket_price"] * travelers,
+            "is_short_route_warning": is_short,
+            "baggage": "15 kg cabin, 7 kg hand"
+        } for f in DEMO_FLIGHTS]
 
     elif mode == "train":
-        trains = [
-            {"name": "Shatabdi Express", "number": "12002", "base_price": 850.0, "speed": 85, "delay_rate": "12%"},
-            {"name": "Rajdhani Express", "number": "12430", "base_price": 1200.0, "speed": 95, "delay_rate": "4%"},
-            {"name": "Express Mail", "number": "14022", "base_price": 450.0, "speed": 60, "delay_rate": "25%"}
-        ]
-
-        train_options = []
-        for idx, tr in enumerate(trains):
-            single_price = round((tr["base_price"] * (dist_km / 300.0)) + random.randint(-80, 120), 2)
-            single_price = max(180.0, single_price)
-            dur_hrs = round((dist_km / tr["speed"]) + 0.8, 1)
-            dep_hour = random.choice([7, 13, 21])
-
-            train_options.append({
-                "id": f"t_{tr['number']}",
-                "train_name": tr["name"],
-                "train_number": tr["number"],
-                "departure_time": f"{dep_hour:02d}:15",
-                "arrival_time": f"{((dep_hour + int(dur_hrs)) % 24):02d}:45",
-                "duration_hrs": dur_hrs,
-                "travel_class": "AC Chair Car" if "Shatabdi" in tr["name"] else "3AC Sleeper" if "Rajdhani" in tr["name"] else "Sleeper Class",
-                "single_ticket_price": single_price,
-                "total_price_inr": single_price * travelers,
-                "delay_rate": tr["delay_rate"],
-                "reviews": [f"Very comfortable journey in AC coach.", "Slightly delayed but good meals served."]
-            })
-        return train_options
+        from demo_registry import DEMO_TRAINS
+        return [{
+            **t,
+            "total_price_inr": t["single_ticket_price"] * travelers,
+        } for t in DEMO_TRAINS]
 
     elif mode == "bus":
         operators = [
@@ -291,12 +248,115 @@ def search_transit_candidates(origin: str, destination: str, departure_date: str
             "overnight_stay_required": overnight_stay_required,
             "fuel_pumps_count": max(3, int(dist_km / 60.0)),
             "ev_stations_count": max(1, int(dist_km / 120.0)),
-            "suggested_rest_stops": [
-                {"name": "Old Rao Dhaba (NH-48)", "dist_km": round(dist_km * 0.35), "rating": 4.3, "cuisine": "Authentic North Indian Thali & Parathas", "price_level": "Budget (₹150-₹300)"},
-                {"name": "Shiva Tourist Dhaba (NH-48)", "dist_km": round(dist_km * 0.6), "rating": 4.2, "cuisine": "Pure Veg Dal Makhani & Tandoori Roti", "price_level": "Budget (₹120-₹250)"},
-                {"name": "Mannat Haveli Tourist Plaza", "dist_km": round(dist_km * 0.8), "rating": 4.5, "cuisine": "Multi-cuisine Punjabi Food & Lassi", "price_level": "Moderate (₹250-₹500)"}
-            ]
+            "suggested_rest_stops": (
+                [
+                    {"name": "Old Rao Dhaba (NH-48)", "dist_km": round(dist_km * 0.35), "rating": 4.3, "cuisine": "Authentic North Indian Thali & Parathas", "price_level": "Budget (₹150-₹300)", "lat": 28.18, "lng": 76.82},
+                    {"name": "Shiva Tourist Dhaba (NH-48)", "dist_km": round(dist_km * 0.6), "rating": 4.2, "cuisine": "Pure Veg Dal Makhani & Tandoori Roti", "price_level": "Budget (₹120-₹250)", "lat": 27.91, "lng": 76.54},
+                    {"name": "Mannat Haveli Tourist Plaza", "dist_km": round(dist_km * 0.8), "rating": 4.5, "cuisine": "Multi-cuisine Punjabi Food & Lassi", "price_level": "Moderate (₹250-₹500)", "lat": 27.35, "lng": 76.01}
+                ] if "jaipur" in destination.strip().lower() else
+                [
+                    {"name": "Kolhapur Highway Sai Food Court (NH-48)", "dist_km": round(dist_km * 0.35), "rating": 4.4, "cuisine": "Maharashtrian Thali & Snacks", "price_level": "Budget (₹150-₹300)", "lat": 16.71, "lng": 74.24},
+                    {"name": "Satara Highway Plaza", "dist_km": round(dist_km * 0.6), "rating": 4.1, "cuisine": "South Indian & Fast Food", "price_level": "Budget (₹100-₹250)", "lat": 17.69, "lng": 74.00},
+                    {"name": "Nipani Ghat Konkan Family Restaurant", "dist_km": round(dist_km * 0.85), "rating": 4.3, "cuisine": "Goan Fish Curry & Malvani Thali", "price_level": "Moderate (₹200-₹450)", "lat": 16.11, "lng": 73.74}
+                ] if "goa" in destination.strip().lower() else
+                [
+                    {"name": "Food Plaza Yamuna Expressway (Mile 50)", "dist_km": round(dist_km * 0.3), "rating": 4.2, "cuisine": "North Indian Thali & Chaat", "price_level": "Budget (₹150-₹300)", "lat": 28.12, "lng": 77.56},
+                    {"name": "Shiva Dhaba Jewar Toll (Mile 90)", "dist_km": round(dist_km * 0.65), "rating": 4.1, "cuisine": "Tandoori Paratha & Tea", "price_level": "Budget (₹100-₹220)", "lat": 27.65, "lng": 77.92}
+                ] if "agra" in destination.strip().lower() else
+                [
+                    {"name": f"Highway Pitstop Plaza ({destination} Route)", "dist_km": round(dist_km * 0.4), "rating": 4.0, "cuisine": "Multi-cuisine Buffet & Tea", "price_level": "Budget (₹150-₹300)", "lat": 28.3, "lng": 77.2},
+                    {"name": f"Local Highway Dhaba ({destination} Route)", "dist_km": round(dist_km * 0.75), "rating": 4.2, "cuisine": "Authentic Regional Thali", "price_level": "Budget (₹100-₹200)", "lat": 27.8, "lng": 76.5}
+                ]
+            )
         }]
+
+def get_hotel_assets(name: str, city_name: str):
+    name_lower = name.lower()
+    city_lower = city_name.lower()
+    
+    if "rambagh" in name_lower or "taj" in name_lower or "palace" in name_lower:
+        images = [
+            "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=500&q=80",
+            "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=500&q=80",
+            "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=500&q=80"
+        ]
+        reviews = [
+            "Outstanding royal heritage hospitality. The peacock gardens and palace courtyard were breathtaking.",
+            "World-class luxury. Truly a royal heritage stay in India."
+        ]
+    elif "umaid" in name_lower or "haveli" in name_lower:
+        images = [
+            "https://images.unsplash.com/photo-1601918774946-25832a4be0d6?w=500&q=80",
+            "https://images.unsplash.com/photo-1544124499-58912cbddadf?w=500&q=80",
+            "https://images.unsplash.com/photo-1504624263478-660c1d9f1d2d?w=500&q=80"
+        ]
+        reviews = [
+            "Beautiful traditional Haveli. The architecture and hand-painted wall frescos are gorgeous.",
+            "Cozy rooms, quiet heritage neighborhood, and very polite service."
+        ]
+    elif "ocean" in name_lower or "park" in name_lower or "grand" in name_lower:
+        images = [
+            "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=500&q=80",
+            "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=500&q=80",
+            "https://images.unsplash.com/photo-1560200353-ce0a76b1d438?w=500&q=80"
+        ]
+        reviews = [
+            "Excellent modern rooms, very fast room service, and convenient parking facilities.",
+            "High-speed WiFi, modern bathrooms, and a well-curated breakfast spread."
+        ]
+    elif "inn" in name_lower or "residency" in name_lower or "homestay" in name_lower:
+        images = [
+            "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=500&q=80",
+            "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=500&q=80",
+            "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=500&q=80"
+        ]
+        reviews = [
+            "Cozy budget inn. The host was very hospitable and helped organize our local city guides.",
+            "Neat and tidy beds, rooftop tea sit-out, and peaceful neighborhood vibe."
+        ]
+    elif "goa" in city_lower:
+        images = [
+            "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80",
+            "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500&q=80",
+            "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=500&q=80"
+        ]
+        reviews = [
+            "Perfect beach stay. Extremely close to the shacks and watersports.",
+            "Lovely pool area, clean rooms, and chilled resort vibe."
+        ]
+    else:
+        images = [
+            "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=500&q=80",
+            "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=500&q=80",
+            "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=500&q=80"
+        ]
+        reviews = [
+            "Nice clean rooms, polite staff behavior, and centrally located.",
+            "Good value for money. Breakfast options were decent."
+        ]
+    return images, reviews
+
+def get_attraction_image(name: str, city_name: str) -> str:
+    name_lower = name.lower()
+    city_lower = city_name.lower()
+    
+    if "hawa" in name_lower:
+        return "https://images.unsplash.com/photo-1602643163983-ed0babc39797?w=500&q=80"
+    elif "jantar" in name_lower or "mantar" in name_lower:
+        return "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=500&q=80"
+    elif "albert" in name_lower or "hall" in name_lower or "museum" in name_lower:
+        return "https://images.unsplash.com/photo-1603262110263-fb0112e7cc33?w=500&q=80"
+    elif "amber" in name_lower or "amer" in name_lower or "fort" in name_lower:
+        return "https://images.unsplash.com/photo-1590050752117-238cb0612b1b?w=500&q=80"
+    elif "taj" in name_lower or "mahal" in name_lower:
+        return "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=500&q=80"
+    elif "baga" in name_lower or "calangute" in name_lower or "beach" in name_lower:
+        return "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80"
+    elif "goa" in city_lower:
+        return "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500&q=80"
+    elif "jaipur" in city_lower:
+        return "https://images.unsplash.com/photo-1599661046289-e31897846e41?w=500&q=80"
+    return "https://images.unsplash.com/photo-1477584322813-ac04e7b3017?w=500&q=80"
 
 def fetch_osm_candidates(lat: float, lng: float, city_name: str):
     HOTEL_IMAGES = [
@@ -347,12 +407,7 @@ def fetch_osm_candidates(lat: float, lng: float, city_name: str):
                 if "tourism" in tags and tags["tourism"] in ["hotel", "guest_house", "hostel"]:
                     star = random.choice([3.0, 4.0, 5.0]) if "stars" not in tags else float(tags.get("stars", 3))
                     base_price = 1200.0 if star == 3.0 else 3200.0 if star == 4.0 else 9000.0
-                    image_index = len(hotels)
-                    h_images = [
-                        HOTEL_IMAGES[image_index % len(HOTEL_IMAGES)],
-                        HOTEL_IMAGES[(image_index + 1) % len(HOTEL_IMAGES)],
-                        HOTEL_IMAGES[(image_index + 2) % len(HOTEL_IMAGES)]
-                    ]
+                    h_images, h_reviews = get_hotel_assets(name, city_name)
                     hotels.append({
                         "id": "h_" + el_id,
                         "name": name,
@@ -363,8 +418,8 @@ def fetch_osm_candidates(lat: float, lng: float, city_name: str):
                         "star_rating": star,
                         "distance_from_center": round(abs(el_lat - lat) * 111, 2),
                         "amenities": ["wifi", "ac", "breakfast"] + ([ "pool", "gym", "spa" ] if star >= 4.0 else []),
-                        "reviews": [f"Very nice hospitality at {name}.", "Clean beds and quiet atmosphere."],
-                        "image_url": HOTEL_IMAGES[image_index % len(HOTEL_IMAGES)],
+                        "reviews": h_reviews,
+                        "image_url": h_images[0],
                         "images": h_images,
                         "is_estimated": False
                     })
@@ -383,7 +438,7 @@ def fetch_osm_candidates(lat: float, lng: float, city_name: str):
                         "closing_hour": 18,
                         "tags": ["heritage", "architecture"] if "historic" in tags else ["scenic", "viewpoint"],
                         "reviews": ["Beautiful sights.", "Highly recommend sunset viewing."],
-                        "image_url": ATTRACTION_IMAGES[len(attractions) % len(ATTRACTION_IMAGES)],
+                        "image_url": get_attraction_image(name, city_name),
                         "is_estimated": False
                     })
                 elif "amenity" in tags and tags["amenity"] in ["restaurant", "cafe", "fast_food"]:

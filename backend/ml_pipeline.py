@@ -159,7 +159,34 @@ class CatBoostRanker:
         if not candidates:
             return []
 
-        df = pd.DataFrame(candidates)
+        # Safe Feature Preparation Layer
+        normalized_candidates = []
+        for c in candidates:
+            rating_val = c.get("rating", 0.8)
+            if rating_val is None or pd.isna(rating_val):
+                rating_val = 0.8
+            
+            price_ratio = c.get("price_ratio", 0.5)
+            if price_ratio is None or pd.isna(price_ratio):
+                price_ratio = 0.5
+                
+            tag_overlap = c.get("tag_overlap", 1.0)
+            if tag_overlap is None or pd.isna(tag_overlap):
+                tag_overlap = 1.0
+                
+            dist_val = c.get("dist_to_center", 2.0)
+            if dist_val is None or pd.isna(dist_val):
+                dist_val = 2.0
+                
+            normalized_candidates.append({
+                **c,
+                "rating": rating_val,
+                "price_ratio": price_ratio,
+                "tag_overlap": tag_overlap,
+                "dist_to_center": dist_val
+            })
+
+        df = pd.DataFrame(normalized_candidates)
         features = ["price_ratio", "rating", "tag_overlap", "dist_to_center"]
 
         # Predict
