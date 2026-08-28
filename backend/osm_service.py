@@ -231,7 +231,7 @@ def search_transit_candidates(origin: str, destination: str, departure_date: str
 
         toll_list = get_toll_plazas_by_route(destination)
         total_tolls = sum(t["fee_inr"] for t in toll_list)
-        driving_hrs = round((dist_km / 55.0) + 0.5, 1)
+        driving_hrs = round((dist_km / 70.0) + 0.5, 1)
         overnight_stay_required = driving_hrs > 10.0
 
         return [{
