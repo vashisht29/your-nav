@@ -76,8 +76,8 @@ import time
 class AgentOrchestrator:
     def __init__(self):
         self.logs = []
-        self.max_iterations = 10
-        self.timeout_seconds = 8.0
+        self.max_iterations = 100
+        self.timeout_seconds = 10.0
         self.iteration_count = 0
         self.start_time = None
 
