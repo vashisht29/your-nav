@@ -233,11 +233,16 @@ class AgentOrchestrator:
 
         updated_schedule = []
         for item in schedule:
-            if item.get("category") == "logistics" and ("Check-in" in item["name"] or "Arrive" in item["name"]):
+            if item.get("category") == "logistics" and ("Check-in" in item["name"] or "Arrive" in item["name"] or "Transit" in item["name"]):
+                # Avoid double shifting if already delayed
+                if "Delayed by" in item.get("description", ""):
+                    continue
                 sh_hrs = int(item["start_time"].split(":")[0])
                 sh_mins = int(item["start_time"].split(":")[1])
                 new_start_min = sh_hrs * 60 + sh_mins + delay_minutes
-                new_start_time = f"{new_start_min // 60:02d}:{new_start_min % 60:02d}"
+                new_start_hrs = (new_start_min // 60) % 24
+                new_start_mins = new_start_min % 60
+                new_start_time = f"{new_start_hrs:02d}:{new_start_mins:02d}"
                 item["start_time"] = new_start_time
                 item["description"] = f"Delayed by {delay_minutes} mins. " + item.get("description", "")
             

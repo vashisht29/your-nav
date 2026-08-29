@@ -307,6 +307,8 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                     })
                 else:
                     # Non self-drive options (Flight/Train/Bus)
+                    checkin_start = "12:00"
+                    
                     if mode == "flight":
                         airline_name = transit_estimate.get("airline", "Commercial Flight")
                         fl_num = transit_estimate.get("flight_number", "FL-101")
@@ -322,15 +324,25 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                             "description": f"Fly from origin to nearest hub airport: {transit_estimate.get('destination_airport', 'DHM')}."
                         })
                         
+                        arr_hrs = int(arr_t.split(":")[0])
+                        arr_mins = int(arr_t.split(":")[1])
+                        
                         if is_multi_leg:
+                            taxi_end_min = arr_hrs * 60 + arr_mins + 90
+                            taxi_end_t = f"{(taxi_end_min // 60) % 24:02d}:{taxi_end_min % 60:02d}"
+                            
                             day_schedule.append({
                                 "name": "🚕 Ground Connection: Airport Taxi Transfer",
                                 "category": "logistics",
                                 "start_time": arr_t,
-                                "end_time": "12:00",
+                                "end_time": taxi_end_t,
                                 "cost_inr": 0.0,
                                 "description": f"Take taxi from airport terminal to final destination hotel stay. Connection note: {transit_estimate.get('accessibility_note', '')}"
                             })
+                            checkin_start = taxi_end_t
+                        else:
+                            checkin_min = arr_hrs * 60 + arr_mins + 45
+                            checkin_start = f"{(checkin_min // 60) % 24:02d}:{checkin_min % 60:02d}"
 
                     elif mode == "train":
                         tr_name = transit_estimate.get("train_name", "Express Train")
@@ -343,6 +355,11 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                             "cost_inr": 0.0,
                             "description": "Board intercity train transit towards destination station."
                         })
+                        arr_t = transit_estimate.get("arrival_time", "11:30")
+                        arr_hrs = int(arr_t.split(":")[0])
+                        arr_mins = int(arr_t.split(":")[1])
+                        checkin_min = arr_hrs * 60 + arr_mins + 30
+                        checkin_start = f"{(checkin_min // 60) % 24:02d}:{checkin_min % 60:02d}"
 
                     elif mode == "bus":
                         operator = transit_estimate.get("operator", "State Bus")
@@ -355,13 +372,23 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                             "cost_inr": 0.0,
                             "description": "Travel by sleeper coach bus towards destination highway plaza."
                         })
+                        arr_t = transit_estimate.get("arrival_time", "11:45")
+                        arr_hrs = int(arr_t.split(":")[0])
+                        arr_mins = int(arr_t.split(":")[1])
+                        checkin_min = arr_hrs * 60 + arr_mins + 30
+                        checkin_start = f"{(checkin_min // 60) % 24:02d}:{checkin_min % 60:02d}"
 
                     hotel_name = selected_hotel_obj["name"] if selected_hotel_obj else "Accommodation"
+                    ch_h = int(checkin_start.split(":")[0])
+                    ch_m = int(checkin_start.split(":")[1])
+                    checkin_end_min = ch_h * 60 + ch_m + 60
+                    checkin_end = f"{(checkin_end_min // 60) % 24:02d}:{checkin_end_min % 60:02d}"
+                    
                     day_schedule.append({
                         "name": f"🏨 Check-in at {hotel_name}",
                         "category": "logistics",
-                        "start_time": "12:00",
-                        "end_time": "13:00",
+                        "start_time": checkin_start,
+                        "end_time": checkin_end,
                         "cost_inr": 0.0,
                         "description": desc["checkin"]
                     })
