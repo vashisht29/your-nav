@@ -299,6 +299,7 @@ export default function Home() {
   const [travelClass, setTravelClass] = useState("economy");
   const [delayLoading, setDelayLoading] = useState(false);
   const [showRouteFactors, setShowRouteFactors] = useState(false);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
 
   useEffect(() => {
     setErrorMsg("");
@@ -578,6 +579,62 @@ export default function Home() {
     } finally {
       setDelayLoading(false);
     }
+  };
+
+  const parseTimeToMins = (tStr: string) => {
+    if (!tStr || !tStr.includes(":")) return 720;
+    const parts = tStr.split(":");
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  };
+
+  const minsToTimeStr = (mins: number) => {
+    const total = (mins + 1440) % 1440;
+    const hrs = Math.floor(total / 60);
+    const m = total % 60;
+    return `${hrs.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+
+  const handleSpeedChange = (newMult: number) => {
+    setSpeedMultiplier(newMult);
+    if (!itinerary || !itinerary.days) return;
+    
+    // Deep clone the itinerary
+    const updated = JSON.parse(JSON.stringify(itinerary));
+    
+    updated.days.forEach((day: any) => {
+      let accumulatedShiftMins = 0;
+      day.schedule = day.schedule.map((item: any) => {
+        const isTransit = item.category === "logistics" && 
+          (item.name.toLowerCase().includes("drive") || 
+           item.name.toLowerCase().includes("transit") || 
+           item.name.toLowerCase().includes("taxi") ||
+           item.name.toLowerCase().includes("road"));
+        
+        if (isTransit) {
+          const originalStartMins = parseTimeToMins(item.start_time);
+          const originalEndMins = parseTimeToMins(item.end_time);
+          const originalDuration = originalEndMins - originalStartMins;
+          
+          // Higher multiplier scales duration down (less driving time needed)
+          // Lower multiplier scales duration up (traffic delays)
+          const newDuration = Math.round(originalDuration / newMult);
+          const diff = newDuration - originalDuration;
+          
+          item.end_time = minsToTimeStr(originalStartMins + newDuration);
+          accumulatedShiftMins += diff;
+        } else {
+          // Shift standard attractions and checks by the accumulated delay/acceleration diff
+          const originalStartMins = parseTimeToMins(item.start_time);
+          const originalEndMins = parseTimeToMins(item.end_time);
+          
+          item.start_time = minsToTimeStr(originalStartMins + accumulatedShiftMins);
+          item.end_time = minsToTimeStr(originalEndMins + accumulatedShiftMins);
+        }
+        return item;
+      });
+    });
+    
+    setItinerary(updated);
   };
 
   const handleApplyAlternative = async (alt: any) => {
@@ -936,8 +993,11 @@ export default function Home() {
                       <span className="font-bold text-slate-800 flex items-center gap-1">
                         <Plane className="w-3.5 h-3.5 text-primary-500" /> {f.airline} ({f.flight_number})
                         {f.data_status && (
-                          <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase ${
-                            f.data_status === "LIVE" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
+                          <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                            f.data_status === "LIVE" ? "bg-emerald-100 text-emerald-800" :
+                            f.data_status === "DEMO" || f.data_status === "FALLBACK" ? "bg-rose-100 text-rose-800 border border-rose-200" :
+                            f.data_status === "VERIFIED" ? "bg-blue-100 text-blue-800" :
+                            "bg-slate-100 text-slate-700"
                           }`}>
                             {f.data_status}
                           </span>
@@ -1448,15 +1508,34 @@ export default function Home() {
                 
                 {/* Timeline Accordion with Flexible Day Slots */}
                 <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-3">
-                  <div className="flex justify-between items-center border-b pb-2">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-2.5 gap-2">
                     <h3 className="text-sm font-extrabold text-slate-800">Itinerary Timeline</h3>
-                    <button
-                      disabled={delayLoading}
-                      onClick={handleSimulateDelay}
-                      className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 text-[10px] font-bold rounded-lg border border-red-200 flex items-center gap-1 transition-all disabled:opacity-50"
-                    >
-                      {delayLoading ? "Simulating Delay..." : "⚠️ Simulate 3-Hour Flight Delay"}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {(transportMode === "self-drive" || selectedTransit?.is_multi_leg) && (
+                        <div className="flex items-center gap-1.5 border px-2 py-0.5 rounded-lg bg-slate-50 text-[10px] font-bold">
+                          <span className="text-slate-500">Driving Speed/Traffic:</span>
+                          <input
+                            type="range"
+                            min="0.7"
+                            max="1.5"
+                            step="0.1"
+                            value={speedMultiplier}
+                            onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                            className="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                          />
+                          <span className={speedMultiplier > 1.0 ? "text-emerald-600" : speedMultiplier < 1.0 ? "text-rose-600" : "text-slate-600"}>
+                            {speedMultiplier}x
+                          </span>
+                        </div>
+                      )}
+                      <button
+                        disabled={delayLoading}
+                        onClick={handleSimulateDelay}
+                        className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 text-[10px] font-bold rounded-lg border border-red-200 flex items-center gap-1 transition-all disabled:opacity-50 flex-shrink-0"
+                      >
+                        {delayLoading ? "Simulating..." : "⚠️ Simulate 3-Hour Flight Delay"}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     {itinerary.days.map((day: any) => {
@@ -1710,6 +1789,19 @@ export default function Home() {
                 <span className="text-slate-400">{t.delayRateLabel}</span>
                 <span className="font-bold text-red-600">{inspectingTransit.delay_rate} delay average</span>
               </div>
+              {inspectingTransit.data_status && (
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Data Trust Status</span>
+                  <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                    inspectingTransit.data_status === "LIVE" ? "bg-emerald-100 text-emerald-800" :
+                    inspectingTransit.data_status === "DEMO" || inspectingTransit.data_status === "FALLBACK" ? "bg-rose-100 text-rose-800 border border-rose-200" :
+                    inspectingTransit.data_status === "VERIFIED" ? "bg-blue-100 text-blue-800" :
+                    "bg-slate-100 text-slate-700"
+                  }`}>
+                    {inspectingTransit.data_status} DATA
+                  </span>
+                </div>
+              )}
               {inspectingTransit.baggage && (
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t.baggageLabel}</span>
