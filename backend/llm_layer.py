@@ -97,3 +97,50 @@ def generate_itinerary_explanation(itinerary, persona_name, lang="en"):
             return f"Error: Received status {response.status_code} from Gemini. (Alternative: {hotel_name} selected for your {persona_name} trip, total cost INR {total_cost})."
     except Exception as e:
         return f"Could not connect to Gemini API. (Alternative: {hotel_name} selected for your {persona_name} trip, total cost INR {total_cost})."
+
+def geocode_with_llm(name: str):
+    """
+    Calls the Gemini API to get coordinates (lat, lng) and display name for a query when Nominatim is rate-limited.
+    """
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+        
+    prompt = f"""
+    Find the latitude, longitude, and full official display name of the following place query: "{name}".
+    Return ONLY a valid JSON object with the keys "lat", "lng", and "display_name". No markdown formatting, no backticks, no other text.
+    Example output format:
+    {{"lat": 11.4102, "lng": 76.6950, "display_name": "Ooty, Tamil Nadu, India"}}
+    """
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "contents": [{
+            "parts": [{
+                "text": prompt
+            }]
+        }]
+    }
+    try:
+        response = requests.post(
+            f"{GEMINI_API_URL}?key={api_key}",
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=5
+        )
+        if response.status_code == 200:
+            res_json = response.json()
+            raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+            # Remove potential markdown formatting backticks
+            if raw_text.startswith("```json"):
+                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+            elif raw_text.startswith("```"):
+                raw_text = raw_text.split("```")[1].split("```")[0].strip()
+            data = json.loads(raw_text)
+            return {
+                "lat": float(data["lat"]),
+                "lng": float(data["lng"]),
+                "display_name": str(data["display_name"])
+            }
+    except Exception as e:
+        print("Geocoding with LLM failed:", e)
+    return None

@@ -164,6 +164,7 @@ LOCAL_GEOCODE_FALLBACK = {
     "wayanad": {"lat": 11.6854, "lng": 76.1320, "display_name": "Wayanad, Kerala, India"},
     "calangute": {"lat": 15.5441, "lng": 73.7624, "display_name": "Calangute, Goa, India"},
     "anjuna": {"lat": 15.5733, "lng": 73.7428, "display_name": "Anjuna, Goa, India"},
+    "ooty": {"lat": 11.4102, "lng": 76.6950, "display_name": "Ooty Hill Station, Tamil Nadu, India"},
     "birmingham": {"lat": 52.4862, "lng": -1.8904, "display_name": "Birmingham, England, UK"},
     "london": {"lat": 51.5074, "lng": -0.1278, "display_name": "London, England, UK"},
     "paris": {"lat": 48.8566, "lng": 2.3522, "display_name": "Paris, Île-de-France, France"},
@@ -188,6 +189,13 @@ def geocode_destination(name: str):
             return {"lat": float(data["lat"]), "lng": float(data["lon"]), "display_name": data["display_name"]}
     except Exception as e:
         print("Geocoding failed:", e)
+        
+    # 3. Dynamic LLM geocoding fallback if Nominatim rate limit (429) blocks response
+    from llm_layer import geocode_with_llm
+    llm_res = geocode_with_llm(name)
+    if llm_res:
+        return llm_res
+        
     return None
 
 def find_closest_airport(lat: float, lng: float):
