@@ -24,7 +24,11 @@ AIRPORTS = {
     "Patna": {"code": "PAT", "name": "Jay Prakash Narayan Airport", "lat": 25.5912, "lng": 85.0881},
     "Gaya": {"code": "GAY", "name": "Gaya Airport", "lat": 24.7447, "lng": 84.9512},
     "Munnar": {"code": "COK", "name": "Cochin International Airport (Closest)", "lat": 10.1520, "lng": 76.4019},
-    "Kochi": {"code": "COK", "name": "Cochin International Airport", "lat": 10.1520, "lng": 76.4019}
+    "Kochi": {"code": "COK", "name": "Cochin International Airport", "lat": 10.1520, "lng": 76.4019},
+    "Kangra/Dharamshala": {"code": "DHM", "name": "Gaggal Kangra Airport", "lat": 32.1651, "lng": 76.2634},
+    "Kullu/Manali": {"code": "KUU", "name": "Bhuntar Kullu Airport", "lat": 31.8767, "lng": 77.1524},
+    "Goa": {"code": "GOI", "name": "Dabolim Goa Airport", "lat": 15.3808, "lng": 73.8314},
+    "Chandigarh": {"code": "IXC", "name": "Shaheed Bhagat Singh International Airport", "lat": 30.6734, "lng": 76.7885}
 }
 
 VEHICLE_DATABASE = [
@@ -220,15 +224,141 @@ def search_transit_candidates(origin: str, destination: str, departure_date: str
         dest_port = find_closest_airport(dest_geo["lat"], dest_geo["lng"])
         is_short = dist_km < 250.0
 
-        from demo_registry import DEMO_FLIGHTS
+        o_code = orig_port["code"] if orig_port else "DEL"
+        d_code = dest_port["code"] if dest_port else "JAI"
+
+        # Real flight numbers and timings mapped for demo routes
+        if o_code == "DEL" and d_code == "DHM":
+            flights = [
+                {
+                    "id": "f_indigo_dhm_1",
+                    "airline": "IndiGo",
+                    "flight_number": "6E-7284",
+                    "departure_time": "09:30",
+                    "arrival_time": "11:00",
+                    "duration_hrs": 1.5,
+                    "single_ticket_price": 4200.0,
+                    "delay_rate": "3%",
+                    "reviews": ["Very quick connection to Kangra valley.", "Beautiful mountain approach views."]
+                },
+                {
+                    "id": "f_alliance_dhm_2",
+                    "airline": "Alliance Air",
+                    "flight_number": "9I-813",
+                    "departure_time": "07:15",
+                    "arrival_time": "08:35",
+                    "duration_hrs": 1.3,
+                    "single_ticket_price": 4900.0,
+                    "delay_rate": "5%",
+                    "reviews": ["On time flight.", "Generous cabin service."]
+                }
+            ]
+        elif o_code == "DEL" and d_code == "GOI":
+            flights = [
+                {
+                    "id": "f_indigo_goi_1",
+                    "airline": "IndiGo",
+                    "flight_number": "6E-2124",
+                    "departure_time": "08:15",
+                    "arrival_time": "10:55",
+                    "duration_hrs": 2.6,
+                    "single_ticket_price": 5400.0,
+                    "delay_rate": "4%",
+                    "reviews": ["Smooth flight, on-time landing at Dabolim.", "Comfortable seating."]
+                },
+                {
+                    "id": "f_airindia_goi_2",
+                    "airline": "Air India",
+                    "flight_number": "AI-883",
+                    "departure_time": "11:00",
+                    "arrival_time": "13:45",
+                    "duration_hrs": 2.75,
+                    "single_ticket_price": 6100.0,
+                    "delay_rate": "7%",
+                    "reviews": ["Hot lunch meal included.", "Clean cabin and very spacious."]
+                }
+            ]
+        elif o_code == "DEL" and d_code == "JAI":
+            flights = [
+                {
+                    "id": "f_alliance_jai_1",
+                    "airline": "Alliance Air",
+                    "flight_number": "9I-843",
+                    "departure_time": "10:15",
+                    "arrival_time": "11:15",
+                    "duration_hrs": 1.0,
+                    "single_ticket_price": 3100.0,
+                    "delay_rate": "5%",
+                    "reviews": ["Short pleasant flight.", "Polite air hostesses."]
+                },
+                {
+                    "id": "f_indigo_jai_2",
+                    "airline": "IndiGo",
+                    "flight_number": "6E-7264",
+                    "departure_time": "18:20",
+                    "arrival_time": "19:15",
+                    "duration_hrs": 0.9,
+                    "single_ticket_price": 2800.0,
+                    "delay_rate": "2%",
+                    "reviews": ["Extremely quick, took off and landed on-time.", "Convenient evening timing."]
+                }
+            ]
+        elif o_code == "BOM" and d_code == "KNU":
+            flights = [
+                {
+                    "id": "f_indigo_knu_1",
+                    "airline": "IndiGo",
+                    "flight_number": "6E-2034",
+                    "departure_time": "09:35",
+                    "arrival_time": "11:40",
+                    "duration_hrs": 2.1,
+                    "single_ticket_price": 5200.0,
+                    "delay_rate": "3%",
+                    "reviews": ["On time departure and quick landing.", "Clean cabin and polite crew."]
+                }
+            ]
+        else:
+            hash_num = (hash(o_code + d_code) % 700) + 100
+            flights = [
+                {
+                    "id": "f_gen_indigo_1",
+                    "airline": "IndiGo",
+                    "flight_number": f"6E-{hash_num}",
+                    "departure_time": "08:30",
+                    "arrival_time": "11:00",
+                    "duration_hrs": round(dist_km / 650.0 + 0.5, 1),
+                    "single_ticket_price": round(2500.0 + (dist_km * 3.5), 0),
+                    "delay_rate": "4%",
+                    "reviews": ["Pleasant flight.", "Good budget option."]
+                },
+                {
+                    "id": "f_gen_airindia_2",
+                    "airline": "Air India",
+                    "flight_number": f"AI-{hash_num + 20}",
+                    "departure_time": "14:15",
+                    "arrival_time": "16:45",
+                    "duration_hrs": round(dist_km / 650.0 + 0.5, 1),
+                    "single_ticket_price": round(3200.0 + (dist_km * 4.0), 0),
+                    "delay_rate": "8%",
+                    "reviews": ["Baggage allowance is great.", "Included complimentary snacks."]
+                }
+            ]
+
+        # Sync arrival time based on departure + duration
+        for f in flights:
+            dep_h = int(f["departure_time"].split(":")[0])
+            dep_m = int(f["departure_time"].split(":")[1])
+            tot_mins = dep_h * 60 + dep_m + int(f["duration_hrs"] * 60)
+            f["arrival_time"] = f"{(tot_mins // 60) % 24:02d}:{tot_mins % 60:02d}"
+
         return [{
             **f,
-            "origin_airport": orig_port["code"] if orig_port else "DEL",
-            "destination_airport": dest_port["code"] if dest_port else "JAI",
+            "origin_airport": o_code,
+            "destination_airport": d_code,
             "total_price_inr": f["single_ticket_price"] * travelers,
             "is_short_route_warning": is_short,
             "baggage": "15 kg cabin, 7 kg hand"
-        } for f in DEMO_FLIGHTS]
+        } for f in flights]
 
     elif mode == "train":
         from demo_registry import DEMO_TRAINS
