@@ -107,7 +107,43 @@ def find_midway_city(origin: str, destination: str):
     city_name = reverse_geocode_city(mid_lat, mid_lng)
     return city_name, mid_lat, mid_lng
 
+LOCAL_GEOCODE_FALLBACK = {
+    "delhi": {"lat": 28.6139, "lng": 77.2090, "display_name": "Delhi, India"},
+    "mumbai": {"lat": 19.0760, "lng": 72.8777, "display_name": "Mumbai, Maharashtra, India"},
+    "bangalore": {"lat": 12.9716, "lng": 77.5946, "display_name": "Bengaluru, Karnataka, India"},
+    "jaipur": {"lat": 26.9124, "lng": 75.7873, "display_name": "Jaipur, Rajasthan, India"},
+    "udaipur": {"lat": 24.5854, "lng": 73.7125, "display_name": "Udaipur, Rajasthan, India"},
+    "goa": {"lat": 15.2993, "lng": 74.1240, "display_name": "Goa, India"},
+    "panaji": {"lat": 15.4909, "lng": 73.8278, "display_name": "Panaji, Goa, India"},
+    "bir billing": {"lat": 32.0400, "lng": 76.7200, "display_name": "Bir Billing, Himachal Pradesh, India"},
+    "kasol": {"lat": 32.0090, "lng": 77.3150, "display_name": "Kasol, Himachal Pradesh, India"},
+    "manali": {"lat": 32.2396, "lng": 77.1887, "display_name": "Manali, Himachal Pradesh, India"},
+    "shimla": {"lat": 31.1048, "lng": 77.1734, "display_name": "Shimla, Himachal Pradesh, India"},
+    "dharamshala": {"lat": 32.2190, "lng": 76.3230, "display_name": "Dharamshala, Himachal Pradesh, India"},
+    "leh ladakh": {"lat": 34.1526, "lng": 77.5771, "display_name": "Leh Ladakh, Jammu & Kashmir, India"},
+    "leh": {"lat": 34.1526, "lng": 77.5771, "display_name": "Leh, Ladakh, India"},
+    "agra": {"lat": 27.1767, "lng": 78.0081, "display_name": "Agra, Uttar Pradesh, India"},
+    "jabalpur": {"lat": 23.1815, "lng": 79.9864, "display_name": "Jabalpur, Madhya Pradesh, India"},
+    "bhedaghat": {"lat": 23.1311, "lng": 79.8016, "display_name": "Bhedaghat Dhuandhar Falls, Jabalpur, India"},
+    "kanha": {"lat": 22.3345, "lng": 80.6115, "display_name": "Kanha National Park, Madhya Pradesh, India"},
+    "munnar": {"lat": 10.0889, "lng": 77.0595, "display_name": "Munnar, Kerala, India"},
+    "kochi": {"lat": 9.9312, "lng": 76.2673, "display_name": "Kochi, Kerala, India"},
+    "alleppey": {"lat": 9.4981, "lng": 76.3388, "display_name": "Alleppey, Kerala, India"},
+    "rishikesh": {"lat": 30.0869, "lng": 78.2676, "display_name": "Rishikesh, Uttarakhand, India"},
+    "mussoorie": {"lat": 30.4598, "lng": 78.0799, "display_name": "Mussoorie, Uttarakhand, India"},
+    "nalanda": {"lat": 25.1204, "lng": 85.3647, "display_name": "Nalanda Heritage Site, Bihar, India"},
+    "gaya": {"lat": 24.7447, "lng": 84.9512, "display_name": "Gaya, Bihar, India"}
+}
+
 def geocode_destination(name: str):
+    name_clean = name.lower().strip()
+    
+    # 1. Local Fallback Database check
+    for key, val in LOCAL_GEOCODE_FALLBACK.items():
+        if key in name_clean:
+            return {"lat": val["lat"], "lng": val["lng"], "display_name": val["display_name"]}
+
+    # 2. Live API Call fallback
     params = {"q": name + ", India", "format": "json", "limit": 1}
     try:
         response = requests.get(NOMINATIM_URL, params=params, headers=HEADERS, timeout=8)
