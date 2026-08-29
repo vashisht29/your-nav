@@ -310,10 +310,10 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                     checkin_start = "12:00"
                     
                     if mode == "flight":
-                        airline_name = transit_estimate.get("airline", "Commercial Flight")
-                        fl_num = transit_estimate.get("flight_number", "FL-101")
-                        dep_t = transit_estimate.get("departure_time", "08:00")
-                        arr_t = transit_estimate.get("arrival_time", "10:30")
+                        airline_name = transit_estimate.get("airline") or "Commercial Flight"
+                        fl_num = transit_estimate.get("flight_number") or "FL-101"
+                        dep_t = transit_estimate.get("departure_time") or "08:00"
+                        arr_t = transit_estimate.get("arrival_time") or "10:30"
                         
                         day_schedule.append({
                             "name": f"🛫 Flight Transit: {airline_name} ({fl_num})",
@@ -321,7 +321,8 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                             "start_time": dep_t,
                             "end_time": arr_t,
                             "cost_inr": 0.0,
-                            "description": f"Fly from origin to nearest hub airport: {transit_estimate.get('destination_airport', 'DHM')}."
+                            "start_minutes": parse_time(dep_t),
+                            "description": f"Fly from origin to nearest hub airport: {transit_estimate.get('destination_airport') or 'DHM'}."
                         })
                         
                         arr_hrs = int(arr_t.split(":")[0])
@@ -337,7 +338,8 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                                 "start_time": arr_t,
                                 "end_time": taxi_end_t,
                                 "cost_inr": 0.0,
-                                "description": f"Take taxi from airport terminal to final destination hotel stay. Connection note: {transit_estimate.get('accessibility_note', '')}"
+                                "start_minutes": parse_time(arr_t),
+                                "description": f"Take taxi from airport terminal to final destination hotel stay. Connection note: {transit_estimate.get('accessibility_note') or ''}"
                             })
                             checkin_start = taxi_end_t
                         else:
@@ -345,31 +347,33 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                             checkin_start = f"{(checkin_min // 60) % 24:02d}:{checkin_min % 60:02d}"
 
                     elif mode == "train":
-                        tr_name = transit_estimate.get("train_name", "Express Train")
-                        tr_num = transit_estimate.get("train_number", "12002")
+                        tr_name = transit_estimate.get("train_name") or "Express Train"
+                        tr_num = transit_estimate.get("train_number") or "12002"
                         day_schedule.append({
                             "name": f"🚊 Train Transit: {tr_name} ({tr_num})",
                             "category": "logistics",
-                            "start_time": transit_estimate.get("departure_time", "07:00"),
-                            "end_time": transit_estimate.get("arrival_time", "11:30"),
+                            "start_time": transit_estimate.get("departure_time") or "07:00",
+                            "end_time": transit_estimate.get("arrival_time") or "11:30",
                             "cost_inr": 0.0,
+                            "start_minutes": parse_time(transit_estimate.get("departure_time") or "07:00"),
                             "description": "Board intercity train transit towards destination station."
                         })
-                        arr_t = transit_estimate.get("arrival_time", "11:30")
+                        arr_t = transit_estimate.get("arrival_time") or "11:30"
                         arr_hrs = int(arr_t.split(":")[0])
                         arr_mins = int(arr_t.split(":")[1])
                         checkin_min = arr_hrs * 60 + arr_mins + 30
                         checkin_start = f"{(checkin_min // 60) % 24:02d}:{checkin_min % 60:02d}"
 
                     elif mode == "bus":
-                        operator = transit_estimate.get("operator", "State Bus")
-                        b_type = transit_estimate.get("bus_type", "AC Sleeper")
+                        operator = transit_estimate.get("operator") or "State Bus"
+                        b_type = transit_estimate.get("bus_type") or "AC Sleeper"
                         day_schedule.append({
                             "name": f"🚌 Bus Transit: {operator} ({b_type})",
                             "category": "logistics",
-                            "start_time": transit_estimate.get("departure_time", "07:30"),
-                            "end_time": transit_estimate.get("arrival_time", "11:45"),
+                            "start_time": transit_estimate.get("departure_time") or "07:30",
+                            "end_time": transit_estimate.get("arrival_time") or "11:45",
                             "cost_inr": 0.0,
+                            "start_minutes": parse_time(transit_estimate.get("departure_time") or "07:30"),
                             "description": "Travel by sleeper coach bus towards destination highway plaza."
                         })
                         arr_t = transit_estimate.get("arrival_time", "11:45")
@@ -390,6 +394,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": checkin_start,
                         "end_time": checkin_end,
                         "cost_inr": 0.0,
+                        "start_minutes": parse_time(checkin_start),
                         "description": desc["checkin"]
                     })
                     day_schedule.append({
@@ -398,6 +403,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": "14:15",
                         "end_time": "15:00",
                         "cost_inr": 300.0,
+                        "start_minutes": parse_time("14:15"),
                         "description": desc["lunch"]
                     })
 
@@ -480,12 +486,13 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "start_time": "21:30",
                         "end_time": "23:59",
                         "cost_inr": 0.0,
+                        "start_minutes": parse_time("21:30"),
                         "description": desc["checkout"]
                     })
                 else:
                     if mode == "flight":
-                        airline_name = transit_estimate.get("airline", "Commercial Flight")
-                        fl_num = transit_estimate.get("flight_number", "FL-102")
+                        airline_name = transit_estimate.get("airline") or "Commercial Flight"
+                        fl_num = transit_estimate.get("flight_number") or "FL-102"
                         
                         if is_multi_leg:
                             day_schedule.append({
@@ -494,7 +501,8 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                                 "start_time": "17:00",
                                 "end_time": "18:30",
                                 "cost_inr": 0.0,
-                                "description": f"Take taxi from hotel in destination back to {transit_estimate.get('destination_airport', 'DHM')} airport terminal."
+                                "start_minutes": parse_time("17:00"),
+                                "description": f"Take taxi from hotel in destination back to {transit_estimate.get('destination_airport') or 'DHM'} airport terminal."
                             })
                             day_schedule.append({
                                 "name": f"🛫 Return Flight Transit: {airline_name} ({fl_num})",
@@ -502,6 +510,7 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                                 "start_time": "20:00",
                                 "end_time": "22:30",
                                 "cost_inr": 0.0,
+                                "start_minutes": parse_time("20:00"),
                                 "description": "Board flight back to origin airport."
                             })
                         else:
@@ -511,26 +520,29 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                                 "start_time": "18:00",
                                 "end_time": "21:00",
                                 "cost_inr": 0.0,
+                                "start_minutes": parse_time("18:00"),
                                 "description": "Board flight back to origin airport."
                             })
                     elif mode == "train":
-                        tr_name = transit_estimate.get("train_name", "Express Train")
+                        tr_name = transit_estimate.get("train_name") or "Express Train"
                         day_schedule.append({
                             "name": f"🚊 Return Train Transit: {tr_name}",
                             "category": "logistics",
                             "start_time": "17:30",
                             "end_time": "22:00",
                             "cost_inr": 0.0,
+                            "start_minutes": parse_time("17:30"),
                             "description": "Board return train transit back to origin railway terminal."
                         })
                     elif mode == "bus":
-                        operator = transit_estimate.get("operator", "State Bus")
+                        operator = transit_estimate.get("operator") or "State Bus"
                         day_schedule.append({
                             "name": f"🚌 Return Bus Transit: {operator}",
                             "category": "logistics",
                             "start_time": "18:00",
                             "end_time": "22:30",
                             "cost_inr": 0.0,
+                            "start_minutes": parse_time("18:00"),
                             "description": "Board coach bus back to origin."
                         })
 
