@@ -208,7 +208,12 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
 
     food_cost = int(600 * group_size * days)
     mult = CLASS_MULTIPLIERS.get(travel_class, 1.0)
-    transit_fare_cost = int(transit_estimate["cost_inr"] * mult)
+    is_self_drive = transit_estimate.get("mode", "self-drive") == "self-drive"
+    if is_self_drive:
+        transit_fare_cost = int(transit_estimate["cost_inr"] * mult)
+    else:
+        transit_fare_cost = int(transit_estimate["cost_inr"] * mult * group_size)
+        
     toll_cost_fixed = int(toll_cost)  # Tolls stay constant regardless of class
 
     total_cost = model.NewIntVar(0, int(budget) * 100, 'total_cost')
