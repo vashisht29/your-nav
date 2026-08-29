@@ -164,7 +164,7 @@ class AgentOrchestrator:
         dest_port = None
         min_port_dist = 99999.0
         for city, port in AIRPORTS.items():
-            port_dist = abs(port["lat"] - dest_geo["lat"]) + abs(port["lng"] - dest_geo["lng"]) * 111.0
+            port_dist = (abs(port["lat"] - dest_geo["lat"]) + abs(port["lng"] - dest_geo["lng"])) * 111.0
             if port_dist < min_port_dist:
                 min_port_dist = port_dist
                 dest_port = port
