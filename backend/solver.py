@@ -237,8 +237,32 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
         "total_cost_inr": 0.0,
         "selected_hotel": None,
         "days": [],
-        "cost_breakdown": {}
+        "cost_breakdown": {},
+        "explanation": ""
     }
+
+    if status != cp_model.OPTIMAL and status != cp_model.FEASIBLE:
+        # Diagnostic analysis for infeasible options
+        min_hotel = min(int(h["cost_inr"]) for h in hotel_candidates) * num_nights * rooms_needed if hotel_candidates else 0
+        min_transit = transit_fare_cost + toll_cost_fixed
+        min_food = food_cost
+        absolute_min = min_hotel + min_transit + min_food
+        
+        if absolute_min > budget:
+            itinerary["explanation"] = (
+                f"Conflict: Your budget of ₹{budget} is insufficient. "
+                f"The absolute minimum required cost is ₹{absolute_min} "
+                f"(Hotel Stay: ₹{min_hotel}, Transit: ₹{min_transit}, Food/Dhabas: ₹{min_food}). "
+                f"Please increase your budget or reduce travelers."
+            )
+        else:
+            itinerary["explanation"] = (
+                "Conflict: Time constraints overlap. The selected transit duration "
+                f"({transit_estimate.get('duration_hrs', 0)} hrs) leaves insufficient open hours "
+                f"for the planned attractions within their opening/closing windows. "
+                "Recommend extending trip duration or reducing the number of attractions."
+            )
+        return itinerary
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         itinerary["status"] = "Optimal"
@@ -329,17 +353,20 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         arr_mins = int(arr_t.split(":")[1])
                         
                         if is_multi_leg:
-                            taxi_end_min = arr_hrs * 60 + arr_mins + 90
+                            taxi_start_min = arr_hrs * 60 + arr_mins + 45
+                            taxi_start_t = f"{(taxi_start_min // 60) % 24:02d}:{taxi_start_min % 60:02d}"
+                            
+                            taxi_end_min = taxi_start_min + 90
                             taxi_end_t = f"{(taxi_end_min // 60) % 24:02d}:{taxi_end_min % 60:02d}"
                             
                             day_schedule.append({
                                 "name": "🚕 Ground Connection: Airport Taxi Transfer",
                                 "category": "logistics",
-                                "start_time": arr_t,
+                                "start_time": taxi_start_t,
                                 "end_time": taxi_end_t,
                                 "cost_inr": 0.0,
-                                "start_minutes": parse_time(arr_t),
-                                "description": f"Take taxi from airport terminal to final destination hotel stay. Connection note: {transit_estimate.get('accessibility_note') or ''}"
+                                "start_minutes": taxi_start_min,
+                                "description": f"Includes 45-min connection buffer. Take taxi from airport terminal to final destination hotel stay. Connection note: {transit_estimate.get('accessibility_note') or ''}"
                             })
                             checkin_start = taxi_end_t
                         else:

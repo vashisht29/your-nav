@@ -71,9 +71,41 @@ UNIVERSAL_PLACES_DB = [
     {"name": "Wayanad, Kerala", "lat": 11.6854, "lng": 76.1320, "data_status": "VERIFIED"}
 ]
 
+import time
+
 class AgentOrchestrator:
     def __init__(self):
         self.logs = []
+        self.max_iterations = 10
+        self.timeout_seconds = 8.0
+        self.iteration_count = 0
+        self.start_time = None
+
+    def reset_loop_safety(self):
+        self.iteration_count = 0
+        self.start_time = time.time()
+
+    def check_loop_safety(self):
+        self.iteration_count += 1
+        if self.iteration_count > self.max_iterations:
+            self.log(
+                "Agent Loop Safety Alert",
+                "Infinite loop or maximum iteration limit reached. Halting autonomous agent execution to prevent server lockup.",
+                "check_loop_safety()",
+                f"Iterations: {self.iteration_count} (Limit: {self.max_iterations})"
+            )
+            raise RuntimeError("Agent loop iteration ceiling exceeded. Safely aborted infinite execution.")
+        
+        if self.start_time:
+            elapsed = time.time() - self.start_time
+            if elapsed > self.timeout_seconds:
+                self.log(
+                    "Agent Timeout Guard",
+                    f"Agent execution elapsed time ({elapsed:.2f}s) exceeded limit of {self.timeout_seconds}s. Aborting.",
+                    "check_loop_safety()",
+                    f"Elapsed: {elapsed:.2f}s (Limit: {self.timeout_seconds}s)"
+                )
+                raise TimeoutError("Agent execution timeout. Safely fell back to cached feasible state.")
 
     def log(self, step_name: str, thought: str, action: str, observation: Any):
         self.logs.append({
@@ -139,6 +171,7 @@ class AgentOrchestrator:
         """
         Tool: Searches transit options. Implements the Accessibility Planning Layer to support multi-leg transit if direct route is unavailable.
         """
+        self.reset_loop_safety()
         self.log(
             "ACCESSIBILITY_ANALYSIS",
             "First I need to determine destination accessibility. Resolving coordinates and checking connectivity.",
@@ -160,10 +193,26 @@ class AgentOrchestrator:
         c = 2 * math.asin(math.sqrt(a))
         dist_km = (6371.0 * c) * 1.35
 
+        # Check overland viability for cross-continental distances
+        is_international = (dist_km > 3000.0)
+        if is_international and mode in ["self-drive", "train", "bus"]:
+            self.log(
+                "ACCESSIBILITY_ANALYSIS",
+                f"Route is physically impossible: Direct {mode} is not viable for cross-continental travel of {dist_km:.1f} km.",
+                "verify_feasibility()",
+                "Decision: DISCARD route"
+            )
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=400,
+                detail=f"Driving, Train, or Bus transit is physically impossible for international route ({dist_km:.0f} km). Please select Flight instead."
+            )
+
         # Check nearest airport to destination
         dest_port = None
         min_port_dist = 99999.0
         for city, port in AIRPORTS.items():
+            self.check_loop_safety()
             port_dist = (abs(port["lat"] - dest_geo["lat"]) + abs(port["lng"] - dest_geo["lng"])) * 111.0
             if port_dist < min_port_dist:
                 min_port_dist = port_dist

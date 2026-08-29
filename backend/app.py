@@ -445,7 +445,7 @@ def plan_trip(req: PlanRequest):
 
         return {
             "status": "Infeasible",
-            "message": f"This combination exceeds your ₹{req.budget} budget. We found better alternatives that keep the trip within budget while maintaining quality.",
+            "message": itinerary.get("explanation") or f"This combination exceeds your ₹{req.budget} budget. We found better alternatives that keep the trip within budget while maintaining quality.",
             "persona": persona_name,
             "alternatives": alternatives
         }
