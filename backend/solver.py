@@ -261,7 +261,9 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
             "remaining_balance": budget - float(solver.Value(total_cost))
         }
 
-        is_road_trip = transit_estimate.get("duration_hrs", 0) > 0
+        mode = transit_estimate.get("mode", "self-drive")
+        is_road_trip = (mode == "self-drive")
+        is_multi_leg = transit_estimate.get("is_multi_leg", False)
 
         # Daily Schedules
         for d in range(days):
@@ -304,9 +306,59 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                         "description": desc["arrive_hotel"]
                     })
                 else:
+                    # Non self-drive options (Flight/Train/Bus)
+                    if mode == "flight":
+                        airline_name = transit_estimate.get("airline", "Commercial Flight")
+                        fl_num = transit_estimate.get("flight_number", "FL-101")
+                        dep_t = transit_estimate.get("departure_time", "08:00")
+                        arr_t = transit_estimate.get("arrival_time", "10:30")
+                        
+                        day_schedule.append({
+                            "name": f"🛫 Flight Transit: {airline_name} ({fl_num})",
+                            "category": "logistics",
+                            "start_time": dep_t,
+                            "end_time": arr_t,
+                            "cost_inr": 0.0,
+                            "description": f"Fly from origin to nearest hub airport: {transit_estimate.get('destination_airport', 'DHM')}."
+                        })
+                        
+                        if is_multi_leg:
+                            day_schedule.append({
+                                "name": "🚕 Ground Connection: Airport Taxi Transfer",
+                                "category": "logistics",
+                                "start_time": arr_t,
+                                "end_time": "12:00",
+                                "cost_inr": 0.0,
+                                "description": f"Take taxi from airport terminal to final destination hotel stay. Connection note: {transit_estimate.get('accessibility_note', '')}"
+                            })
+
+                    elif mode == "train":
+                        tr_name = transit_estimate.get("train_name", "Express Train")
+                        tr_num = transit_estimate.get("train_number", "12002")
+                        day_schedule.append({
+                            "name": f"🚊 Train Transit: {tr_name} ({tr_num})",
+                            "category": "logistics",
+                            "start_time": transit_estimate.get("departure_time", "07:00"),
+                            "end_time": transit_estimate.get("arrival_time", "11:30"),
+                            "cost_inr": 0.0,
+                            "description": "Board intercity train transit towards destination station."
+                        })
+
+                    elif mode == "bus":
+                        operator = transit_estimate.get("operator", "State Bus")
+                        b_type = transit_estimate.get("bus_type", "AC Sleeper")
+                        day_schedule.append({
+                            "name": f"🚌 Bus Transit: {operator} ({b_type})",
+                            "category": "logistics",
+                            "start_time": transit_estimate.get("departure_time", "07:30"),
+                            "end_time": transit_estimate.get("arrival_time", "11:45"),
+                            "cost_inr": 0.0,
+                            "description": "Travel by sleeper coach bus towards destination highway plaza."
+                        })
+
                     hotel_name = selected_hotel_obj["name"] if selected_hotel_obj else "Accommodation"
                     day_schedule.append({
-                        "name": f"Check-in at {hotel_name}",
+                        "name": f"🏨 Check-in at {hotel_name}",
                         "category": "logistics",
                         "start_time": "12:00",
                         "end_time": "13:00",
@@ -394,14 +446,66 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
             })
 
             if d == days - 1:
-                day_schedule.append({
-                    "name": "Checkout & Intercity Return Transit",
-                    "category": "logistics",
-                    "start_time": "21:30",
-                    "end_time": "23:59",
-                    "cost_inr": 0.0,
-                    "description": desc["checkout"]
-                })
+                if is_road_trip:
+                    day_schedule.append({
+                        "name": "Checkout & Intercity Return Transit",
+                        "category": "logistics",
+                        "start_time": "21:30",
+                        "end_time": "23:59",
+                        "cost_inr": 0.0,
+                        "description": desc["checkout"]
+                    })
+                else:
+                    if mode == "flight":
+                        airline_name = transit_estimate.get("airline", "Commercial Flight")
+                        fl_num = transit_estimate.get("flight_number", "FL-102")
+                        
+                        if is_multi_leg:
+                            day_schedule.append({
+                                "name": "🚕 Ground Connection: Taxi to Airport",
+                                "category": "logistics",
+                                "start_time": "17:00",
+                                "end_time": "18:30",
+                                "cost_inr": 0.0,
+                                "description": f"Take taxi from hotel in destination back to {transit_estimate.get('destination_airport', 'DHM')} airport terminal."
+                            })
+                            day_schedule.append({
+                                "name": f"🛫 Return Flight Transit: {airline_name} ({fl_num})",
+                                "category": "logistics",
+                                "start_time": "20:00",
+                                "end_time": "22:30",
+                                "cost_inr": 0.0,
+                                "description": "Board flight back to origin airport."
+                            })
+                        else:
+                            day_schedule.append({
+                                "name": f"🛫 Return Flight Transit: {airline_name} ({fl_num})",
+                                "category": "logistics",
+                                "start_time": "18:00",
+                                "end_time": "21:00",
+                                "cost_inr": 0.0,
+                                "description": "Board flight back to origin airport."
+                            })
+                    elif mode == "train":
+                        tr_name = transit_estimate.get("train_name", "Express Train")
+                        day_schedule.append({
+                            "name": f"🚊 Return Train Transit: {tr_name}",
+                            "category": "logistics",
+                            "start_time": "17:30",
+                            "end_time": "22:00",
+                            "cost_inr": 0.0,
+                            "description": "Board return train transit back to origin railway terminal."
+                        })
+                    elif mode == "bus":
+                        operator = transit_estimate.get("operator", "State Bus")
+                        day_schedule.append({
+                            "name": f"🚌 Return Bus Transit: {operator}",
+                            "category": "logistics",
+                            "start_time": "18:00",
+                            "end_time": "22:30",
+                            "cost_inr": 0.0,
+                            "description": "Board coach bus back to origin."
+                        })
 
             itinerary["days"].append({
                 "day_number": d + 1,

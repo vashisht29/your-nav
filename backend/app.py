@@ -322,7 +322,18 @@ def plan_trip(req: PlanRequest):
 
     transit_estimate = {
         "cost_inr": req.selected_transit.total_price_inr / req.travelers if req.transport_mode != "self-drive" else req.selected_transit.total_price_inr,
-        "duration_hrs": req.selected_transit.duration_hrs
+        "duration_hrs": req.selected_transit.duration_hrs,
+        "mode": req.transport_mode,
+        "is_multi_leg": getattr(req.selected_transit, "is_multi_leg", False),
+        "accessibility_note": getattr(req.selected_transit, "accessibility_note", ""),
+        "departure_time": getattr(req.selected_transit, "departure_time", "09:00"),
+        "arrival_time": getattr(req.selected_transit, "arrival_time", "13:00"),
+        "airline": getattr(req.selected_transit, "airline", ""),
+        "flight_number": getattr(req.selected_transit, "flight_number", ""),
+        "train_name": getattr(req.selected_transit, "train_name", ""),
+        "train_number": getattr(req.selected_transit, "train_number", ""),
+        "operator": getattr(req.selected_transit, "operator", ""),
+        "bus_type": getattr(req.selected_transit, "bus_type", "")
     }
 
     def calc_haversine_road(la1, lo1, la2, lo2):
