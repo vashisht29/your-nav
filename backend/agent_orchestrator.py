@@ -11,6 +11,66 @@ from osm_service import geocode_destination, search_transit_candidates, AIRPORTS
 from real_providers import get_hotels_with_failover, get_sights_with_failover
 from solver import solve_itinerary, calculate_trip_cost
 
+# Universal rate-limit immune fallback database of Indian tourist hubs
+UNIVERSAL_PLACES_DB = [
+    # North India / Himalayas
+    {"name": "Leh Ladakh, Jammu & Kashmir", "lat": 34.1526, "lng": 77.5771, "data_status": "VERIFIED"},
+    {"name": "Srinagar, Jammu & Kashmir", "lat": 34.0837, "lng": 74.7973, "data_status": "VERIFIED"},
+    {"name": "Gulmarg, Jammu & Kashmir", "lat": 34.0484, "lng": 74.3805, "data_status": "VERIFIED"},
+    {"name": "Amritsar, Punjab", "lat": 31.6340, "lng": 74.8723, "data_status": "VERIFIED"},
+    {"name": "Shimla, Himachal Pradesh", "lat": 31.1048, "lng": 77.1734, "data_status": "VERIFIED"},
+    {"name": "Manali, Himachal Pradesh", "lat": 32.2396, "lng": 77.1887, "data_status": "VERIFIED"},
+    {"name": "Dharamshala, Himachal Pradesh", "lat": 32.2190, "lng": 76.3230, "data_status": "VERIFIED"},
+    {"name": "Bir Billing, Himachal Pradesh", "lat": 32.0400, "lng": 76.7200, "data_status": "VERIFIED"},
+    {"name": "Kasol, Himachal Pradesh", "lat": 32.0090, "lng": 77.3150, "data_status": "VERIFIED"},
+    {"name": "Spiti Valley, Himachal Pradesh", "lat": 32.2460, "lng": 78.0340, "data_status": "VERIFIED"},
+    {"name": "Rishikesh, Uttarakhand", "lat": 30.0869, "lng": 78.2676, "data_status": "VERIFIED"},
+    {"name": "Mussoorie, Uttarakhand", "lat": 30.4598, "lng": 78.0799, "data_status": "VERIFIED"},
+    {"name": "Nainital, Uttarakhand", "lat": 29.3919, "lng": 79.4542, "data_status": "VERIFIED"},
+    {"name": "Auli Ski Resort, Uttarakhand", "lat": 30.5312, "lng": 79.5658, "data_status": "VERIFIED"},
+    {"name": "Dehradun, Uttarakhand", "lat": 30.3165, "lng": 78.0322, "data_status": "VERIFIED"},
+    {"name": "Delhi (National Capital Territory)", "lat": 28.6139, "lng": 77.2090, "data_status": "VERIFIED"},
+    {"name": "Gurgaon, Haryana", "lat": 28.4595, "lng": 77.0266, "data_status": "VERIFIED"},
+
+    # West India / Rajasthan
+    {"name": "Jaipur, Rajasthan", "lat": 26.9124, "lng": 75.7873, "data_status": "VERIFIED"},
+    {"name": "Udaipur, Rajasthan", "lat": 24.5854, "lng": 73.7125, "data_status": "VERIFIED"},
+    {"name": "Jaisalmer, Rajasthan", "lat": 26.9157, "lng": 70.9083, "data_status": "VERIFIED"},
+    {"name": "Jodhpur, Rajasthan", "lat": 26.2389, "lng": 73.0243, "data_status": "VERIFIED"},
+    {"name": "Pushkar, Rajasthan", "lat": 26.4897, "lng": 74.5511, "data_status": "VERIFIED"},
+    {"name": "Mumbai, Maharashtra", "lat": 19.0760, "lng": 72.8777, "data_status": "VERIFIED"},
+    {"name": "Lonavala, Maharashtra", "lat": 18.7557, "lng": 73.4091, "data_status": "VERIFIED"},
+    {"name": "Panaji, Goa", "lat": 15.4909, "lng": 73.8278, "data_status": "VERIFIED"},
+    {"name": "Calangute, Goa", "lat": 15.5441, "lng": 73.7624, "data_status": "VERIFIED"},
+    {"name": "Anjuna, Goa", "lat": 15.5733, "lng": 73.7428, "data_status": "VERIFIED"},
+
+    # Central & East India
+    {"name": "Jabalpur, Madhya Pradesh", "lat": 23.1815, "lng": 79.9864, "data_status": "VERIFIED"},
+    {"name": "Bhedaghat Dhuandhar Falls, Jabalpur", "lat": 23.1311, "lng": 79.8016, "data_status": "VERIFIED"},
+    {"name": "Kanha National Park, Madhya Pradesh", "lat": 22.3345, "lng": 80.6115, "data_status": "VERIFIED"},
+    {"name": "Bandhavgarh National Park, Madhya Pradesh", "lat": 23.7088, "lng": 81.0256, "data_status": "VERIFIED"},
+    {"name": "Pachmarhi Hill Station, Madhya Pradesh", "lat": 22.4674, "lng": 78.4346, "data_status": "VERIFIED"},
+    {"name": "Bhopal, Madhya Pradesh", "lat": 23.2599, "lng": 77.4126, "data_status": "VERIFIED"},
+    {"name": "Indore, Madhya Pradesh", "lat": 22.7196, "lng": 75.8577, "data_status": "VERIFIED"},
+    {"name": "Khajuraho Temples, Madhya Pradesh", "lat": 24.8318, "lng": 79.9199, "data_status": "VERIFIED"},
+    {"name": "Agra (Taj Mahal Region), Uttar Pradesh", "lat": 27.1767, "lng": 78.0081, "data_status": "VERIFIED"},
+    {"name": "Varanasi, Uttar Pradesh", "lat": 25.3176, "lng": 82.9739, "data_status": "VERIFIED"},
+    {"name": "Nalanda Heritage Site, Bihar", "lat": 25.1204, "lng": 85.3647, "data_status": "VERIFIED"},
+    {"name": "Gaya, Bihar", "lat": 24.7447, "lng": 84.9512, "data_status": "VERIFIED"},
+    {"name": "Kolkata, West Bengal", "lat": 22.5726, "lng": 88.3639, "data_status": "VERIFIED"},
+    {"name": "Darjeeling, West Bengal", "lat": 27.0410, "lng": 88.2627, "data_status": "VERIFIED"},
+
+    # South India
+    {"name": "Bangalore, Karnataka", "lat": 12.9716, "lng": 77.5946, "data_status": "VERIFIED"},
+    {"name": "Mysore, Karnataka", "lat": 12.2958, "lng": 76.6394, "data_status": "VERIFIED"},
+    {"name": "Hampi Ruins, Karnataka", "lat": 15.3350, "lng": 76.4600, "data_status": "VERIFIED"},
+    {"name": "Ooty Hill Station, Tamil Nadu", "lat": 11.4102, "lng": 76.6950, "data_status": "VERIFIED"},
+    {"name": "Munnar, Kerala", "lat": 10.0889, "lng": 77.0595, "data_status": "VERIFIED"},
+    {"name": "Kochi Port City, Kerala", "lat": 9.9312, "lng": 76.2673, "data_status": "VERIFIED"},
+    {"name": "Alleppey Houseboats, Kerala", "lat": 9.4981, "lng": 76.3388, "data_status": "VERIFIED"},
+    {"name": "Wayanad, Kerala", "lat": 11.6854, "lng": 76.1320, "data_status": "VERIFIED"}
+]
+
 class AgentOrchestrator:
     def __init__(self):
         self.logs = []
@@ -27,98 +87,34 @@ class AgentOrchestrator:
         """
         Tool: Discovers destinations, sub-regions, and specific sub-destinations.
         Matches keywords and returns ranked geographical coordinates.
-        Queries Nominatim live and blends results with local curated regional databases.
+        Uses universal local database to bypass OSM rate limits (429 Too Many Requests).
         """
         query_lower = query.lower().strip()
         self.log(
             "Destination Discovery",
-            f"User typed query '{query}'. Activating Discovery Layer to match exact, nearby, and sub-regions.",
+            f"User typed query '{query}'. Activating Discovery Layer with rate-limit protection.",
             f"search_destination(query='{query}')",
-            f"Matching sub-destinations for {query_lower}"
+            f"Checking local index and querying Nominatim fallback."
         )
 
-        DISCOVERY_DB = {
-            "himachal": [
-                {"name": "Himachal Pradesh, India", "lat": 31.1048, "lng": 77.1734, "data_status": "VERIFIED"},
-                {"name": "Bir Billing, Himachal Pradesh", "lat": 32.04, "lng": 76.72, "data_status": "VERIFIED"},
-                {"name": "Kasol, Himachal Pradesh", "lat": 32.009, "lng": 77.315, "data_status": "VERIFIED"},
-                {"name": "Spiti Valley, Himachal Pradesh", "lat": 32.246, "lng": 78.034, "data_status": "VERIFIED"},
-                {"name": "Dharamshala, Himachal Pradesh", "lat": 32.219, "lng": 76.323, "data_status": "VERIFIED"},
-                {"name": "Manali, Himachal Pradesh", "lat": 32.2396, "lng": 77.1887, "data_status": "VERIFIED"},
-                {"name": "Shimla, Himachal Pradesh", "lat": 31.1048, "lng": 77.1734, "data_status": "VERIFIED"}
-            ],
-            "rajasthan": [
-                {"name": "Rajasthan, India", "lat": 27.0238, "lng": 74.2179, "data_status": "VERIFIED"},
-                {"name": "Jaipur, Rajasthan", "lat": 26.9124, "lng": 75.7873, "data_status": "VERIFIED"},
-                {"name": "Udaipur, Rajasthan", "lat": 24.5854, "lng": 73.7125, "data_status": "VERIFIED"},
-                {"name": "Jaisalmer, Rajasthan", "lat": 26.9157, "lng": 70.9083, "data_status": "VERIFIED"},
-                {"name": "Pushkar, Rajasthan", "lat": 26.4897, "lng": 74.5511, "data_status": "VERIFIED"}
-            ],
-            "goa": [
-                {"name": "Goa, India", "lat": 15.2993, "lng": 74.1240, "data_status": "VERIFIED"},
-                {"name": "Panaji, Goa", "lat": 15.4909, "lng": 73.8278, "data_status": "VERIFIED"},
-                {"name": "Calangute, Goa", "lat": 15.5441, "lng": 73.7624, "data_status": "VERIFIED"},
-                {"name": "Anjuna, Goa", "lat": 15.5733, "lng": 73.7428, "data_status": "VERIFIED"},
-                {"name": "Palolem, Goa", "lat": 15.0100, "lng": 74.0232, "data_status": "VERIFIED"}
-            ],
-            "jabalpur": [
-                {"name": "Jabalpur, Madhya Pradesh, India", "lat": 23.1815, "lng": 79.9864, "data_status": "VERIFIED"},
-                {"name": "Bhedaghat Dhuandhar Falls, Jabalpur", "lat": 23.1311, "lng": 79.8016, "data_status": "VERIFIED"},
-                {"name": "Kanha National Park, Madhya Pradesh", "lat": 22.3345, "lng": 80.6115, "data_status": "VERIFIED"},
-                {"name": "Bandhavgarh National Park, Madhya Pradesh", "lat": 23.7088, "lng": 81.0256, "data_status": "VERIFIED"},
-                {"name": "Pachmarhi Hill Station, Madhya Pradesh", "lat": 22.4674, "lng": 78.4346, "data_status": "VERIFIED"}
-            ],
-            "madhya pradesh": [
-                {"name": "Madhya Pradesh, India", "lat": 22.9734, "lng": 78.6569, "data_status": "VERIFIED"},
-                {"name": "Jabalpur, Madhya Pradesh", "lat": 23.1815, "lng": 79.9864, "data_status": "VERIFIED"},
-                {"name": "Bhopal, Madhya Pradesh", "lat": 23.2599, "lng": 77.4126, "data_status": "VERIFIED"},
-                {"name": "Indore, Madhya Pradesh", "lat": 22.7196, "lng": 75.8577, "data_status": "VERIFIED"},
-                {"name": "Gwalior Fort, Madhya Pradesh", "lat": 26.2195, "lng": 78.1695, "data_status": "VERIFIED"},
-                {"name": "Khajuraho Temples, Madhya Pradesh", "lat": 24.8318, "lng": 79.9199, "data_status": "VERIFIED"},
-                {"name": "Orchha Fort, Madhya Pradesh", "lat": 25.3533, "lng": 78.6431, "data_status": "VERIFIED"}
-            ],
-            "kerala": [
-                {"name": "Kerala, India", "lat": 10.8505, "lng": 76.2711, "data_status": "VERIFIED"},
-                {"name": "Munnar, Kerala", "lat": 10.0889, "lng": 77.0595, "data_status": "VERIFIED"},
-                {"name": "Alleppey Houseboats, Kerala", "lat": 9.4981, "lng": 76.3388, "data_status": "VERIFIED"},
-                {"name": "Wayanad, Kerala", "lat": 11.6854, "lng": 76.1320, "data_status": "VERIFIED"},
-                {"name": "Varkala Cliff Beach, Kerala", "lat": 8.7338, "lng": 76.7059, "data_status": "VERIFIED"},
-                {"name": "Thekkady Wildlife Reserve, Kerala", "lat": 9.6015, "lng": 77.1620, "data_status": "VERIFIED"}
-            ],
-            "uttarakhand": [
-                {"name": "Uttarakhand, India", "lat": 30.0668, "lng": 79.0193, "data_status": "VERIFIED"},
-                {"name": "Rishikesh, Uttarakhand", "lat": 30.0869, "lng": 78.2676, "data_status": "VERIFIED"},
-                {"name": "Auli Ski Resort, Uttarakhand", "lat": 30.5312, "lng": 79.5658, "data_status": "VERIFIED"},
-                {"name": "Mussoorie, Uttarakhand", "lat": 30.4598, "lng": 78.0799, "data_status": "VERIFIED"},
-                {"name": "Nainital, Uttarakhand", "lat": 29.3919, "lng": 79.4542, "data_status": "VERIFIED"},
-                {"name": "Valley of Flowers, Uttarakhand", "lat": 30.7280, "lng": 79.6053, "data_status": "VERIFIED"}
-            ]
-        }
-
-        # Check in local discovery mappings
         suggestions = []
-        for key, list_of_places in DISCOVERY_DB.items():
-            if key in query_lower:
-                suggestions.extend(list_of_places)
+        
+        # Lowercase token substring match from universal local DB
+        for item in UNIVERSAL_PLACES_DB:
+            if query_lower in item["name"].lower():
+                suggestions.append(item)
 
-        # Also search for individual word matches across all lists
-        for key, list_of_places in DISCOVERY_DB.items():
-            for p in list_of_places:
-                if query_lower in p["name"].lower() and p not in suggestions:
-                    suggestions.append(p)
-
-        # Live OpenStreetMap Geocoding suggest pool for deeper discovery
-        if len(query_lower) >= 3:
-            params = {"q": query + ", India", "format": "json", "limit": 5, "countrycodes": "in"}
+        # Dynamic query fallback: If local lookup yields few matches, query OSM with rate limit resilience
+        if len(suggestions) < 3 and len(query_lower) >= 3:
+            params = {"q": query, "format": "json", "limit": 5, "countrycodes": "in"}
             try:
-                response = requests.get(NOMINATIM_URL, params=params, headers=HEADERS, timeout=6)
+                response = requests.get(NOMINATIM_URL, params=params, headers=HEADERS, timeout=5)
                 if response.status_code == 200:
                     for item in response.json():
-                        # Clean and format display name
                         parts = item["display_name"].split(", ")
                         cleaned_name = ", ".join(parts[:3]) + f", {parts[-1]}"
                         
-                        # Prevent duplicate suggestion entries
+                        # Verify we do not append coordinates that overlap with existing suggestions
                         if not any(abs(s["lat"] - float(item["lat"])) < 0.01 and abs(s["lng"] - float(item["lon"])) < 0.01 for s in suggestions):
                             suggestions.append({
                                 "name": cleaned_name,
@@ -126,12 +122,14 @@ class AgentOrchestrator:
                                 "lng": float(item["lon"]),
                                 "data_status": "LIVE"
                             })
+                else:
+                    self.log("Geocoding Warning", f"OSM returned status code {response.status_code}. Activating local fallback mode.", "Nominatim rate check", f"Status: {response.status_code}")
             except Exception as e:
-                self.log("Geocoding API Warning", "Live OSM geocoder suggest query failed", "OSM query", str(e))
+                self.log("Geocoding API Connection Timeout", "Standard OSM lookup timed out.", "Nominatim lookup", str(e))
 
         self.log(
             "Destination Discovery",
-            "Found relevant regional destinations.",
+            "Discovered matching Indian destinations.",
             "search_destination() result",
             f"Found {len(suggestions)} suggestions"
         )
@@ -148,7 +146,6 @@ class AgentOrchestrator:
             "Checking connectivity..."
         )
 
-        # Check if direct coordinates are far from closest airports/hubs
         orig_geo = geocode_destination(origin)
         dest_geo = geocode_destination(destination)
         if not orig_geo or not dest_geo:
@@ -172,9 +169,6 @@ class AgentOrchestrator:
                 min_port_dist = port_dist
                 dest_port = port
 
-        # If mode is flight and nearest airport is far (e.g. Bir Billing is ~68km from Kangra Airport DHM)
-        # DHM is closest airport to Bir, but it is not a direct commercial flight for all cities.
-        # We simulate a multi-leg journey: Flight (DEL -> DHM) + Taxi (DHM -> Bir Billing)
         is_multi_leg_needed = (mode == "flight" and min_port_dist > 30.0)
 
         candidates = search_transit_candidates(
@@ -195,15 +189,13 @@ class AgentOrchestrator:
                 "is_multi_leg_needed = True",
                 f"Nearest Hub: {dest_port['code']}"
             )
-            # Decorate candidate list with multi-leg attributes
             for c in candidates:
                 c["is_multi_leg"] = True
                 c["destination_airport"] = dest_port["code"]
-                # Add taxi fee to the transit ticket cost
-                taxi_cost = round(min_port_dist * 22.0, 2)  # ₹22 per km for taxi
+                taxi_cost = round(min_port_dist * 22.0, 2)
                 c["taxi_cost_inr"] = taxi_cost
                 c["total_price_inr"] += taxi_cost * travelers
-                c["duration_hrs"] = round(c["duration_hrs"] + (min_port_dist / 40.0), 1)  # add taxi time
+                c["duration_hrs"] = round(c["duration_hrs"] + (min_port_dist / 40.0), 1)
                 c["accessibility_note"] = f"Includes flight to {dest_port['code']} + {min_port_dist:.1f}km taxi transfer to {destination}"
                 c["data_status"] = "VERIFIED"
         else:
@@ -216,7 +208,6 @@ class AgentOrchestrator:
     def run_replan_loop(self, state: Dict[str, Any], delay_minutes: int) -> Dict[str, Any]:
         """
         Tool: Autonomously replan itinerary schedules when events (such as flight delays) occur.
-        Detects closed slots, reschedules activities, or replaces them entirely.
         """
         self.log(
             "Impact Analysis",
@@ -229,11 +220,9 @@ class AgentOrchestrator:
         if not days:
             return state
 
-        # Day 1 activities get shifted
         day_1 = days[0]
         schedule = day_1.get("schedule", [])
 
-        # Start of travel gets shifted by delay_minutes
         arrival_shift_hrs = delay_minutes / 60.0
         self.log(
             "Rescheduling",
@@ -245,7 +234,6 @@ class AgentOrchestrator:
         updated_schedule = []
         for item in schedule:
             if item.get("category") == "logistics" and ("Check-in" in item["name"] or "Arrive" in item["name"]):
-                # shift time
                 sh_hrs = int(item["start_time"].split(":")[0])
                 sh_mins = int(item["start_time"].split(":")[1])
                 new_start_min = sh_hrs * 60 + sh_mins + delay_minutes
@@ -253,15 +241,8 @@ class AgentOrchestrator:
                 item["start_time"] = new_start_time
                 item["description"] = f"Delayed by {delay_minutes} mins. " + item.get("description", "")
             
-            # Check if any sightseeing activity is affected
             elif item.get("category") == "attraction" or "opening_hour" in item:
-                # check if start time overlaps with delayed check-in/arrival
-                # For simplicity, if activity is before 18:00 (which is during the delay window), mark it
                 closing_h = item.get("closing_hour", 18)
-                duration_h = item.get("duration_hrs", 2.0)
-                
-                # Check if it clashes
-                # Standard arrival is shifted to ~18:00 or after. If museum closes at 18:00, it cannot be visited
                 if closing_h <= 18.0:
                     self.log(
                         "Conflict Resolution",
