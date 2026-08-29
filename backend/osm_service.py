@@ -3,6 +3,7 @@
 import requests
 import json
 import random
+import math
 from datetime import datetime
 from typing import Optional
 
@@ -162,7 +163,18 @@ def search_transit_candidates(origin: str, destination: str, departure_date: str
     if not orig_geo or not dest_geo:
         return []
 
-    dist_km = (abs(orig_geo["lat"] - dest_geo["lat"]) + abs(orig_geo["lng"] - dest_geo["lng"])) * 111.0
+    # Haversine formula for accurate straight-line distance
+    lat1, lon1 = math.radians(orig_geo["lat"]), math.radians(orig_geo["lng"])
+    lat2, lon2 = math.radians(dest_geo["lat"]), math.radians(dest_geo["lng"])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.asin(math.sqrt(a))
+    straight_line_km = 6371.0 * c  # Earth radius in km
+
+    # Indian road correction factor: roads are ~1.35x longer than straight-line
+    # due to highway curves, ghats, diversions, city bypasses
+    dist_km = round(straight_line_km * 1.35, 1)
     dist_km = max(30.0, dist_km)
 
     random.seed(departure_date + origin + destination + mode)

@@ -32,7 +32,8 @@ import {
   Sparkles,
   Info,
   Wrench,
-  Utensils
+  Utensils,
+  Terminal
 } from "lucide-react";
 
 // Dynamically import MapComponent to bypass SSR window undefined errors
@@ -242,6 +243,25 @@ export default function Home() {
   // Setup Parameters
   const [origin, setOrigin] = useState("Delhi");
   const [destination, setDestination] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [agentLogs, setAgentLogs] = useState<any[]>([]);
+
+  const handleDestinationChange = async (val: string) => {
+    setDestination(val);
+    if (val.trim().length >= 3) {
+      try {
+        const res = await fetch(`http://localhost:8000/api/search/suggestions?q=${encodeURIComponent(val)}`);
+        if (res.status === 200) {
+          const data = await res.json();
+          setSuggestions(data.suggestions || []);
+        }
+      } catch (e) {
+        console.error("Suggestions fetch failed", e);
+      }
+    } else {
+      setSuggestions([]);
+    }
+  };
   const [depDate, setDepDate] = useState("2026-09-10");
   const [retDate, setRetDate] = useState("2026-09-13");
   const [travelers, setTravelers] = useState(2);
@@ -519,6 +539,7 @@ export default function Home() {
           setItinerary(null);
         } else {
           setItinerary(data);
+          setAgentLogs(data.agent_logs || []);
           setStep(5);
         }
       } else {
@@ -550,6 +571,7 @@ export default function Home() {
           ...itinerary,
           days: data.itinerary.days
         });
+        setAgentLogs(data.agent_logs || []);
       }
     } catch (e) {
       console.error("Delay simulation failed:", e);
@@ -761,15 +783,31 @@ export default function Home() {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t.destination}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Nalanda, Jaipur, Munnar, Goa"
+                  placeholder="e.g. Nalanda, Jaipur, Munnar, Goa, Bir Billing"
                   value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
+                  onChange={(e) => handleDestinationChange(e.target.value)}
                   className="w-full p-2.5 rounded-lg border text-xs focus:ring-2 focus:ring-primary-500 focus:outline-none"
                 />
+                {suggestions.length > 0 && (
+                  <div className="absolute z-10 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1">
+                    {suggestions.map((s, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setDestination(s.name);
+                          setSuggestions([]);
+                        }}
+                        className="p-2.5 hover:bg-slate-100 cursor-pointer text-xs text-slate-700 font-bold border-b border-slate-50 last:border-0"
+                      >
+                        {s.name} <span className="text-[9px] font-extrabold text-blue-600 bg-blue-50 px-1 py-0.2 rounded ml-1">{s.data_status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -897,6 +935,13 @@ export default function Home() {
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-slate-800 flex items-center gap-1">
                         <Plane className="w-3.5 h-3.5 text-primary-500" /> {f.airline} ({f.flight_number})
+                        {f.data_status && (
+                          <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase ${
+                            f.data_status === "LIVE" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
+                          }`}>
+                            {f.data_status}
+                          </span>
+                        )}
                       </span>
                       <span className="font-extrabold text-slate-700">₹{f.total_price_inr}</span>
                     </div>
@@ -904,6 +949,11 @@ export default function Home() {
                       <span>{f.origin_airport} ➔ {f.destination_airport}</span>
                       <span>{f.duration_hrs} hrs</span>
                     </div>
+                    {f.is_multi_leg && (
+                      <div className="mt-2 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                        ⚠️ {f.accessibility_note}
+                      </div>
+                    )}
                     <div className="flex gap-2 mt-3">
                       <button
                         onClick={() => setSelectedTransit(f)}
@@ -1128,8 +1178,16 @@ export default function Home() {
                       <div className="flex justify-between text-[10px] text-slate-400 mt-2">
                         <span>
                           {h.star_rating} ⭐{" "}
-                          {h.id.startsWith("demo_") ? (
-                            <span className="bg-emerald-100 text-emerald-800 font-bold px-1 rounded text-[8px] uppercase">DEMO DATA</span>
+                          {h.data_status ? (
+                            <span className={`font-extrabold px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider ${
+                              h.data_status === "LIVE" ? "bg-emerald-100 text-emerald-800" :
+                              h.data_status === "VERIFIED" ? "bg-blue-100 text-blue-800" :
+                              h.data_status === "HISTORICAL" ? "bg-amber-100 text-amber-800" :
+                              h.data_status === "ESTIMATED" ? "bg-purple-100 text-purple-800" :
+                              "bg-slate-100 text-slate-800"
+                            }`}>
+                              {h.data_status}
+                            </span>
                           ) : h.is_estimated ? (
                             <span className="bg-orange-100 text-orange-800 font-bold px-1 rounded text-[8px] uppercase">ESTIMATED DATA</span>
                           ) : (
@@ -1358,6 +1416,32 @@ export default function Home() {
                   {itinerary.explanation}
                 </div>
               </div>
+
+              {/* Agent Thinking Cycle Log Trace */}
+              {agentLogs.length > 0 && (
+                <div className="bg-slate-900 text-slate-100 p-5 rounded-xl border border-slate-800 shadow-lg space-y-4">
+                  <h3 className="text-xs font-extrabold text-slate-200 flex items-center gap-1.5 border-b border-slate-800 pb-2">
+                    <Terminal className="text-emerald-400 w-4 h-4" /> Agentic AI Execution Trace (Autonomous Loop)
+                  </h3>
+                  <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+                    {agentLogs.map((log: any, idx: number) => (
+                      <div key={idx} className="border-l-2 border-slate-700 pl-3.5 ml-1.5 space-y-1 relative text-left">
+                        <div className="absolute w-2 h-2 bg-emerald-400 rounded-full -left-[5px] top-1"></div>
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="font-extrabold text-emerald-400 uppercase tracking-wider">{log.step}</span>
+                          <span className="text-slate-500 font-mono">{log.action.split('(')[0]}()</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 font-medium italic">Thought: "{log.thought}"</p>
+                        <div className="bg-slate-950/60 p-2 rounded border border-slate-800 font-mono text-[9px] text-slate-400">
+                          <span className="text-purple-400 font-bold">Action:</span> {log.action}
+                          <br />
+                          <span className="text-blue-400 font-bold">Observation:</span> {log.observation}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Timeline & Maps */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

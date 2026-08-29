@@ -1,6 +1,7 @@
 # backend/app.py
 
 import os
+import math
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -104,6 +105,11 @@ class PlanRequest(BaseModel):
 def health():
     return {"status": "running"}
 
+@app.get("/api/search/suggestions")
+def get_suggestions(q: str):
+    from agent_orchestrator import agent_orchestrator
+    return {"suggestions": agent_orchestrator.search_destination(q)}
+
 @app.post("/api/search/transit")
 def get_transits(req: TransitSearchRequest):
     try:
@@ -115,7 +121,8 @@ def get_transits(req: TransitSearchRequest):
     except ValueError:
         raise HTTPException(status_code=400, detail="Date format must be YYYY-MM-DD.")
 
-    candidates = search_transit_candidates(
+    from agent_orchestrator import agent_orchestrator
+    candidates = agent_orchestrator.search_transport(
         origin=req.origin,
         destination=req.destination,
         departure_date=req.departure_date,
@@ -170,6 +177,7 @@ def get_stays(req: StaySearchRequest):
             "star_rating": h["star_rating"],
             "is_estimated": h.get("is_estimated", False),
             "is_imputed": is_imputed,
+            "data_status": "ESTIMATED" if (is_imputed or h.get("is_estimated", False)) else "LIVE",
             "reviews": h.get("reviews", ["Clean rooms and quiet surroundings."]),
             "image_url": h.get("image_url", ""),
             "images": h.get("images", [h.get("image_url", "")])
@@ -180,8 +188,14 @@ def get_stays(req: StaySearchRequest):
     midway_city_name = ""
     orig_geo = geocode_destination(req.origin)
     if orig_geo and req.transport_mode == "self-drive":
-        dist_km = (abs(orig_geo["lat"] - geo["lat"]) + abs(orig_geo["lng"] - geo["lng"])) * 111.0
-        driving_hrs = dist_km / 55.0
+        lat1, lon1 = math.radians(orig_geo["lat"]), math.radians(orig_geo["lng"])
+        lat2, lon2 = math.radians(geo["lat"]), math.radians(geo["lng"])
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        c = 2 * math.asin(math.sqrt(a))
+        dist_km = (6371.0 * c) * 1.35
+        driving_hrs = dist_km / 70.0
         if driving_hrs > 10.0:
             # Recommends Udaipur / Varanasi / Hyderabad stopover city
             mid_city, mid_lat, mid_lng = find_midway_city(req.origin, req.destination)
@@ -220,12 +234,28 @@ def plan_trip(req: PlanRequest):
     if delta <= 0:
         raise HTTPException(status_code=400, detail="Return date must be after departure date.")
 
+    from agent_orchestrator import agent_orchestrator
+    agent_orchestrator.logs = []
+    agent_orchestrator.log(
+        "Initiating Planning",
+        f"Planning started for trip from {req.origin} to {req.destination} for {req.travelers} travelers with a budget of ₹{req.budget}.",
+        "initialize_planning()",
+        "TripState established."
+    )
+
     geo = geocode_destination(req.destination)
     if not geo:
         raise HTTPException(status_code=400, detail="Could not geocode destination.")
 
     dest_lat = geo["lat"]
     dest_lng = geo["lng"]
+
+    agent_orchestrator.log(
+        "Geocoding Destination",
+        f"Obtaining coordinates for {req.destination} using OpenStreetMap geocoder.",
+        f"geocode_destination(name='{req.destination}')",
+        f"Coordinates: lat={dest_lat}, lng={dest_lng}"
+    )
 
     raw_hotels = get_hotels_with_failover(dest_lat, dest_lng, req.destination.strip().title())
     sights_data = get_sights_with_failover(dest_lat, dest_lng, req.destination.strip().title())
@@ -256,6 +286,13 @@ def plan_trip(req: PlanRequest):
     
     persona_name, persona_weights = persona_segmenter.predict_persona(user_vector)
     scored_attractions = catboost_ranker.score_candidates(attraction_candidates, persona_weights, "attraction")
+
+    agent_orchestrator.log(
+        "Candidate Scoring",
+        "Applying CatBoost Ranker on sights & attractions based on user interests.",
+        "catboost_ranker.score_candidates()",
+        f"Scored {len(scored_attractions)} places"
+    )
 
     # Destination Hotel Stay
     fixed_hotel = {
@@ -288,6 +325,14 @@ def plan_trip(req: PlanRequest):
         "duration_hrs": req.selected_transit.duration_hrs
     }
 
+    def calc_haversine_road(la1, lo1, la2, lo2):
+        la1, lo1, la2, lo2 = map(math.radians, [la1, lo1, la2, lo2])
+        dlat = la2 - la1
+        dlon = lo2 - lo1
+        a = math.sin(dlat / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin(dlon / 2) ** 2
+        c = 2 * math.asin(math.sqrt(a))
+        return (6371.0 * c) * 1.35
+
     if req.transport_mode == "self-drive" and req.waypoints:
         orig_geo = geocode_destination(req.origin)
         if orig_geo:
@@ -295,10 +340,10 @@ def plan_trip(req: PlanRequest):
             curr_lng = orig_geo["lng"]
             recalc_dist = 0.0
             for wp in req.waypoints:
-                recalc_dist += (abs(curr_lat - wp.lat) + abs(curr_lng - wp.lng)) * 111.0
+                recalc_dist += calc_haversine_road(curr_lat, curr_lng, wp.lat, wp.lng)
                 curr_lat = wp.lat
                 curr_lng = wp.lng
-            recalc_dist += (abs(curr_lat - dest_lat) + abs(curr_lng - dest_lng)) * 111.0
+            recalc_dist += calc_haversine_road(curr_lat, curr_lng, dest_lat, dest_lng)
             
             from osm_service import lookup_vehicle_specs, get_fuel_price_by_location
             v_specs = lookup_vehicle_specs(req.vehicle_query or "")
@@ -308,7 +353,7 @@ def plan_trip(req: PlanRequest):
             
             base_toll = req.selected_transit.total_price_inr - (req.selected_transit.estimated_fuel_cost_inr or 0.0)
             new_total_transit = new_fuel_cost + base_toll
-            new_duration_hrs = round((recalc_dist / 55.0) + 0.5, 1) + (len(req.waypoints) * 0.75)
+            new_duration_hrs = round((recalc_dist / 70.0) + 0.5, 1) + (len(req.waypoints) * 0.75)
             
             transit_estimate = {
                 "cost_inr": round(new_total_transit, 2),
@@ -317,6 +362,14 @@ def plan_trip(req: PlanRequest):
 
     # Solve Optimization (OR-Tools)
     attraction_limit = 12 if delta <= 3 else (9 if delta <= 5 else 6)
+
+    agent_orchestrator.log(
+        "Solver Optimization Constraint setup",
+        f"Formulating optimization model under budget limits with transit class '{req.travel_class}' and pace '{req.pace}'.",
+        "solve_itinerary()",
+        f"Solving daily schedule for {delta} days"
+    )
+
     itinerary = solve_itinerary(
         days=delta,
         budget=req.budget,
@@ -388,6 +441,13 @@ def plan_trip(req: PlanRequest):
 
     explanation = generate_itinerary_explanation(itinerary, persona_name, lang=req.lang)
 
+    agent_orchestrator.log(
+        "Final Validation & Explanation",
+        "Generating human-like natural explanation of resolved itinerary via Gemini LLM layer.",
+        "generate_itinerary_explanation()",
+        "Blueprint finalized."
+    )
+
     return {
         "status": "Success",
         "display_name": geo["display_name"],
@@ -400,7 +460,8 @@ def plan_trip(req: PlanRequest):
         "days": itinerary["days"],
         "total_cost_inr": itinerary["total_cost_inr"],
         "cost_breakdown": itinerary["cost_breakdown"],
-        "explanation": explanation
+        "explanation": explanation,
+        "agent_logs": agent_orchestrator.logs
     }
 
 class SOSQuery(BaseModel):
@@ -438,67 +499,16 @@ class TripEventRequest(BaseModel):
 
 @app.post("/api/trip/events")
 def trigger_trip_event(req: TripEventRequest):
-    from solver import parse_time
-    shifted_days = []
-    
-    for day in req.current_days:
-        day_number = day.get("day_number", 1)
-        schedule = day.get("schedule", [])
-        new_schedule = []
-        
-        for item in schedule:
-            category = item.get("category", "")
-            # Only shift items on Day 1 (when flight arrival delay occurs)
-            if day_number == 1 and category in ["attraction", "logistics", "food"]:
-                start_str = item.get("start_time", "09:00")
-                duration = item.get("duration_hrs", 1.5)
-                
-                orig_start_min = parse_time(start_str)
-                new_start_min = orig_start_min + req.delay_minutes
-                
-                new_start_hrs = (new_start_min // 60) % 24
-                new_start_mins = new_start_min % 60
-                new_start_time = f"{new_start_hrs:02d}:{new_start_mins:02d}"
-                
-                new_end_min = new_start_min + int(duration * 60)
-                new_end_hrs = (new_end_min // 60) % 24
-                new_end_mins = new_end_min % 60
-                new_end_time = f"{new_end_hrs:02d}:{new_end_mins:02d}"
-                
-                is_closed = False
-                if category == "attraction":
-                    close_min = int(item.get("closing_hour", 18) * 60)
-                    if new_end_min > close_min:
-                        is_closed = True
-                
-                updated_item = {
-                    **item,
-                    "start_time": new_start_time,
-                    "end_time": new_end_time,
-                }
-                
-                if is_closed:
-                    updated_item["name"] = f"⚠️ {item['name']} (CLOSED)"
-                    updated_item["description"] = f"Shifted past closing hours ({item.get('closing_hour', 18)}:00) due to flight delay."
-                    updated_item["is_closed_alert"] = True
-                
-                new_schedule.append(updated_item)
-            else:
-                new_schedule.append(item)
-                
-        if day_number == 1:
-            new_schedule.sort(key=lambda x: parse_time(x.get("start_time", "09:00")))
-            
-        shifted_days.append({
-            "day_number": day_number,
-            "schedule": new_schedule
-        })
-        
+    from agent_orchestrator import agent_orchestrator
+    # Create a fresh log state for this request cycle
+    agent_orchestrator.logs = []
+    replanned_state = agent_orchestrator.run_replan_loop({"days": req.current_days}, req.delay_minutes)
     return {
         "status": "Success",
         "itinerary": {
-            "days": shifted_days
-        }
+            "days": replanned_state["days"]
+        },
+        "agent_logs": agent_orchestrator.logs
     }
 
 if __name__ == "__main__":
