@@ -2,11 +2,12 @@
 
 import json
 import math
+import requests
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 # Import helper functions
-from osm_service import geocode_destination, search_transit_candidates, AIRPORTS
+from osm_service import geocode_destination, search_transit_candidates, AIRPORTS, NOMINATIM_URL, HEADERS
 from real_providers import get_hotels_with_failover, get_sights_with_failover
 from solver import solve_itinerary, calculate_trip_cost
 
@@ -26,6 +27,7 @@ class AgentOrchestrator:
         """
         Tool: Discovers destinations, sub-regions, and specific sub-destinations.
         Matches keywords and returns ranked geographical coordinates.
+        Queries Nominatim live and blends results with local curated regional databases.
         """
         query_lower = query.lower().strip()
         self.log(
@@ -58,6 +60,38 @@ class AgentOrchestrator:
                 {"name": "Calangute, Goa", "lat": 15.5441, "lng": 73.7624, "data_status": "VERIFIED"},
                 {"name": "Anjuna, Goa", "lat": 15.5733, "lng": 73.7428, "data_status": "VERIFIED"},
                 {"name": "Palolem, Goa", "lat": 15.0100, "lng": 74.0232, "data_status": "VERIFIED"}
+            ],
+            "jabalpur": [
+                {"name": "Jabalpur, Madhya Pradesh, India", "lat": 23.1815, "lng": 79.9864, "data_status": "VERIFIED"},
+                {"name": "Bhedaghat Dhuandhar Falls, Jabalpur", "lat": 23.1311, "lng": 79.8016, "data_status": "VERIFIED"},
+                {"name": "Kanha National Park, Madhya Pradesh", "lat": 22.3345, "lng": 80.6115, "data_status": "VERIFIED"},
+                {"name": "Bandhavgarh National Park, Madhya Pradesh", "lat": 23.7088, "lng": 81.0256, "data_status": "VERIFIED"},
+                {"name": "Pachmarhi Hill Station, Madhya Pradesh", "lat": 22.4674, "lng": 78.4346, "data_status": "VERIFIED"}
+            ],
+            "madhya pradesh": [
+                {"name": "Madhya Pradesh, India", "lat": 22.9734, "lng": 78.6569, "data_status": "VERIFIED"},
+                {"name": "Jabalpur, Madhya Pradesh", "lat": 23.1815, "lng": 79.9864, "data_status": "VERIFIED"},
+                {"name": "Bhopal, Madhya Pradesh", "lat": 23.2599, "lng": 77.4126, "data_status": "VERIFIED"},
+                {"name": "Indore, Madhya Pradesh", "lat": 22.7196, "lng": 75.8577, "data_status": "VERIFIED"},
+                {"name": "Gwalior Fort, Madhya Pradesh", "lat": 26.2195, "lng": 78.1695, "data_status": "VERIFIED"},
+                {"name": "Khajuraho Temples, Madhya Pradesh", "lat": 24.8318, "lng": 79.9199, "data_status": "VERIFIED"},
+                {"name": "Orchha Fort, Madhya Pradesh", "lat": 25.3533, "lng": 78.6431, "data_status": "VERIFIED"}
+            ],
+            "kerala": [
+                {"name": "Kerala, India", "lat": 10.8505, "lng": 76.2711, "data_status": "VERIFIED"},
+                {"name": "Munnar, Kerala", "lat": 10.0889, "lng": 77.0595, "data_status": "VERIFIED"},
+                {"name": "Alleppey Houseboats, Kerala", "lat": 9.4981, "lng": 76.3388, "data_status": "VERIFIED"},
+                {"name": "Wayanad, Kerala", "lat": 11.6854, "lng": 76.1320, "data_status": "VERIFIED"},
+                {"name": "Varkala Cliff Beach, Kerala", "lat": 8.7338, "lng": 76.7059, "data_status": "VERIFIED"},
+                {"name": "Thekkady Wildlife Reserve, Kerala", "lat": 9.6015, "lng": 77.1620, "data_status": "VERIFIED"}
+            ],
+            "uttarakhand": [
+                {"name": "Uttarakhand, India", "lat": 30.0668, "lng": 79.0193, "data_status": "VERIFIED"},
+                {"name": "Rishikesh, Uttarakhand", "lat": 30.0869, "lng": 78.2676, "data_status": "VERIFIED"},
+                {"name": "Auli Ski Resort, Uttarakhand", "lat": 30.5312, "lng": 79.5658, "data_status": "VERIFIED"},
+                {"name": "Mussoorie, Uttarakhand", "lat": 30.4598, "lng": 78.0799, "data_status": "VERIFIED"},
+                {"name": "Nainital, Uttarakhand", "lat": 29.3919, "lng": 79.4542, "data_status": "VERIFIED"},
+                {"name": "Valley of Flowers, Uttarakhand", "lat": 30.7280, "lng": 79.6053, "data_status": "VERIFIED"}
             ]
         }
 
@@ -73,16 +107,27 @@ class AgentOrchestrator:
                 if query_lower in p["name"].lower() and p not in suggestions:
                     suggestions.append(p)
 
-        # Fallback to standard Nominatim search if no smart suggestions match
-        if not suggestions:
-            geo = geocode_destination(query)
-            if geo:
-                suggestions.append({
-                    "name": geo["display_name"],
-                    "lat": geo["lat"],
-                    "lng": geo["lng"],
-                    "data_status": "LIVE"
-                })
+        # Live OpenStreetMap Geocoding suggest pool for deeper discovery
+        if len(query_lower) >= 3:
+            params = {"q": query + ", India", "format": "json", "limit": 5, "countrycodes": "in"}
+            try:
+                response = requests.get(NOMINATIM_URL, params=params, headers=HEADERS, timeout=6)
+                if response.status_code == 200:
+                    for item in response.json():
+                        # Clean and format display name
+                        parts = item["display_name"].split(", ")
+                        cleaned_name = ", ".join(parts[:3]) + f", {parts[-1]}"
+                        
+                        # Prevent duplicate suggestion entries
+                        if not any(abs(s["lat"] - float(item["lat"])) < 0.01 and abs(s["lng"] - float(item["lon"])) < 0.01 for s in suggestions):
+                            suggestions.append({
+                                "name": cleaned_name,
+                                "lat": float(item["lat"]),
+                                "lng": float(item["lon"]),
+                                "data_status": "LIVE"
+                            })
+            except Exception as e:
+                self.log("Geocoding API Warning", "Live OSM geocoder suggest query failed", "OSM query", str(e))
 
         self.log(
             "Destination Discovery",
