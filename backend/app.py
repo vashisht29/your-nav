@@ -371,29 +371,29 @@ def plan_trip(req: PlanRequest):
                 "duration_hrs": new_duration_hrs
             }
 
-    # Solve Optimization (OR-Tools)
-    attraction_limit = 12 if delta <= 3 else (9 if delta <= 5 else 6)
-
-    agent_orchestrator.log(
-        "Solver Optimization Constraint setup",
-        f"Formulating optimization model under budget limits with transit class '{req.travel_class}' and pace '{req.pace}'.",
-        "solve_itinerary()",
-        f"Solving daily schedule for {delta} days"
-    )
-
-    itinerary = solve_itinerary(
-        days=delta,
-        budget=req.budget,
-        hotel_candidates=[fixed_hotel],
-        attraction_candidates=scored_attractions[:attraction_limit],
-        restaurant_candidates=raw_restaurants,
-        transit_estimate=transit_estimate,
-        group_size=req.travelers,
-        midway_hotel=fixed_midway,
-        travel_class=req.travel_class,
-        toll_cost=req.selected_transit.total_price_inr if req.transport_mode == "self-drive" else 0,
-        pace=req.pace,
-        lang=req.lang or "en"
+    # Run the autonomous agent loop to observe, decide tools, optimize and finalize
+    itinerary = agent_orchestrator.run_agentic_loop(
+        start_req={
+            "origin": req.origin,
+            "destination": req.destination,
+            "departure_date": req.departure_date,
+            "return_date": req.return_date,
+            "travelers": req.travelers,
+            "budget": req.budget,
+            "pace": req.pace,
+            "interests": req.interests,
+            "transport_mode": req.transport_mode,
+            "travel_class": req.travel_class,
+            "selected_transit": req.selected_transit.dict() if req.selected_transit else None,
+            "selected_hotel": req.selected_hotel.dict() if req.selected_hotel else None,
+            "selected_midway_hotel": req.selected_midway_hotel.dict() if req.selected_midway_hotel else None,
+            "waypoints": [w.dict() for w in req.waypoints] if req.waypoints else [],
+            "fuel_type": req.fuel_type,
+            "vehicle_query": req.vehicle_query
+        },
+        raw_hotels=raw_hotels,
+        raw_restaurants=raw_restaurants,
+        scored_attractions=scored_attractions
     )
 
     if itinerary["status"] == "Infeasible":

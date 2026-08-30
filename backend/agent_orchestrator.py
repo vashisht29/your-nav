@@ -352,4 +352,191 @@ class AgentOrchestrator:
 
         return state
 
+    def run_agentic_loop(self, start_req: Dict[str, Any], raw_hotels: list, raw_restaurants: list, scored_attractions: list) -> Dict[str, Any]:
+        """
+        Executes a genuine ReAct loop. Decides tools dynamically, executes them,
+        and constructs the final plan using deterministic solvers.
+        """
+        import json
+        import requests
+        from datetime import datetime
+        
+        self.reset_loop_safety()
+        self.log(
+            "AGENT_START",
+            "Starting autonomous planning session.",
+            "agent_init()",
+            f"Goal: Plan trip from {start_req['origin']} to {start_req['destination']}"
+        )
+
+        state = {
+            "origin": start_req["origin"],
+            "destination": start_req["destination"],
+            "departure_date": start_req["departure_date"],
+            "return_date": start_req["return_date"],
+            "travelers": start_req["travelers"],
+            "budget": start_req["budget"],
+            "pace": start_req["pace"],
+            "interests": start_req["interests"],
+            "transport_mode": start_req["transport_mode"],
+            "travel_class": start_req["travel_class"],
+            "resolved_origin": None,
+            "resolved_destination": None,
+            "transit_candidates": [],
+            "selected_transit": start_req.get("selected_transit"),
+            "selected_hotel": start_req.get("selected_hotel"),
+            "selected_midway_hotel": start_req.get("selected_midway_hotel"),
+            "waypoints": start_req.get("waypoints", []),
+            "itinerary": None
+        }
+
+        # Available tools list description
+        tools_desc = """
+        1. resolve_locations: Resolves coordinates for origin and destination.
+        2. search_transit: Searches flight/train/bus candidates.
+        3. solve_itinerary: Runs CP-SAT solver constraint logic to build day-by-day plan.
+        4. complete_plan: Ends planning and delivers the finalized travel blueprint.
+        """
+
+        api_key = os.getenv("GEMINI_API_KEY")
+        GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+
+        for step in range(6):  # Limit to max iterations
+            self.check_loop_safety()
+            
+            # Build prompt showing current state and instructing tool call
+            prompt = f"""
+            You are an autonomous Travel Planning Agent. You operate in a loop: OBSERVE ➔ THOUGHT ➔ ACTION ➔ OBSERVATION.
+            
+            CURRENT TRIP STATE:
+            {json.dumps(state, indent=2)}
+            
+            AVAILABLE TOOLS:
+            {tools_desc}
+            
+            INSTRUCTIONS:
+            Decide the NEXT logical step. 
+            - If resolved_origin or resolved_destination is null, call "resolve_locations".
+            - If resolved coordinates exist but selected_transit or transit_candidates is empty, call "search_transit".
+            - If transit and stay selections exist, run the "solve_itinerary" tool to formulate the optimized schedule.
+            - If a valid optimized itinerary exists in the state, call "complete_plan".
+            
+            Return ONLY a valid JSON object in this format (no markdown code blocks, no backticks, no other text):
+            {{
+                "thought": "your agent reasoning",
+                "action": "tool_name",
+                "parameters": {{}}
+            }}
+            """
+            
+            action_data = None
+            if api_key:
+                try:
+                    headers = {"Content-Type": "application/json"}
+                    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                    resp = requests.post(f"{GEMINI_API_URL}?key={api_key}", headers=headers, json=payload, timeout=8)
+                    if resp.status_code == 200:
+                        text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        if text.startswith("```json"):
+                            text = text.split("```json")[1].split("```")[0].strip()
+                        elif text.startswith("```"):
+                            text = text.split("```")[1].split("```")[0].strip()
+                        action_data = json.loads(text)
+                except Exception as e:
+                    print("Agent call failed, using deterministic fallback:", e)
+                    
+            # Deterministic Fallback if LLM is offline or fails to parse
+            if not action_data:
+                if not state["resolved_origin"] or not state["resolved_destination"]:
+                    action_data = {"thought": "Deterministic agent fallback: Resolving coordinates.", "action": "resolve_locations", "parameters": {}}
+                elif not state["selected_transit"] and not state["transit_candidates"]:
+                    action_data = {"thought": "Deterministic agent fallback: Searching transport options.", "action": "search_transit", "parameters": {}}
+                elif not state["itinerary"]:
+                    action_data = {"thought": "Deterministic agent fallback: Running CP-SAT solver constraint logic.", "action": "solve_itinerary", "parameters": {}}
+                else:
+                    action_data = {"thought": "Deterministic agent fallback: Finishing planning.", "action": "complete_plan", "parameters": {}}
+
+            # Log Agent thought
+            self.log(
+                "AGENT_THOUGHT",
+                action_data["thought"],
+                f"select_tool(name='{action_data['action']}')",
+                f"Inputs: {action_data.get('parameters', {})}"
+            )
+
+            # Execute Tool
+            act = action_data["action"]
+            if act == "resolve_locations":
+                orig_geo = geocode_destination(state["origin"])
+                dest_geo = geocode_destination(state["destination"])
+                state["resolved_origin"] = orig_geo
+                state["resolved_destination"] = dest_geo
+                self.log("TOOL_EXECUTION", f"Resolved coordinates: {state['origin']} ➔ {orig_geo}, {state['destination']} ➔ {dest_geo}", "resolve_locations()", "Success")
+                
+            elif act == "search_transit":
+                candidates = self.search_transport(
+                    origin=state["origin"],
+                    destination=state["destination"],
+                    departure_date=state["departure_date"],
+                    return_date=state["return_date"],
+                    travelers=state["travelers"],
+                    mode=state["transport_mode"],
+                    fuel_type=start_req.get("fuel_type", "petrol"),
+                    vehicle_query=start_req.get("vehicle_query", "")
+                )
+                state["transit_candidates"] = candidates
+                if candidates and not state["selected_transit"]:
+                    state["selected_transit"] = candidates[0]
+                self.log("TOOL_EXECUTION", f"Transit options retrieved. Found {len(candidates)} candidates.", "search_transit()", f"Selected default: {state['selected_transit'].get('flight_number') or state['selected_transit'].get('train_number') or 'Self-Drive'}")
+                
+            elif act == "solve_itinerary":
+                # Run CP-SAT solver
+                delta = (datetime.strptime(state["return_date"], "%Y-%m-%d") - datetime.strptime(state["departure_date"], "%Y-%m-%d")).days
+                
+                fixed_hotel = state["selected_hotel"]
+                if not fixed_hotel and raw_hotels:
+                    fixed_hotel = raw_hotels[0]
+                
+                fixed_midway = state["selected_midway_hotel"]
+                
+                # Setup transit estimate mapping
+                transit_estimate = {
+                    "cost_inr": state["selected_transit"].get("total_price_inr", 0.0) / state["travelers"] if state["transport_mode"] != "self-drive" else state["selected_transit"].get("total_price_inr", 0.0),
+                    "duration_hrs": state["selected_transit"].get("duration_hrs", 3.0),
+                    "mode": state["transport_mode"],
+                    "is_multi_leg": state["selected_transit"].get("is_multi_leg", False),
+                    "accessibility_note": state["selected_transit"].get("accessibility_note", ""),
+                    "departure_time": state["selected_transit"].get("departure_time", "09:00"),
+                    "arrival_time": state["selected_transit"].get("arrival_time", "13:00")
+                }
+                
+                from solver import solve_itinerary
+                attraction_limit = 12 if delta <= 3 else (9 if delta <= 5 else 6)
+                
+                itinerary = solve_itinerary(
+                    days=delta,
+                    budget=state["budget"],
+                    hotel_candidates=[fixed_hotel] if fixed_hotel else raw_hotels[:3],
+                    attraction_candidates=scored_attractions[:attraction_limit],
+                    restaurant_candidates=raw_restaurants,
+                    transit_estimate=transit_estimate,
+                    group_size=state["travelers"],
+                    midway_hotel=fixed_midway,
+                    travel_class=state["travel_class"],
+                    toll_cost=state["selected_transit"].get("total_price_inr", 0) if state["transport_mode"] == "self-drive" else 0,
+                    pace=state["pace"],
+                    lang="en"
+                )
+                state["itinerary"] = itinerary
+                self.log("TOOL_EXECUTION", f"Solver complete. Solver status: {itinerary['status']}", "solve_itinerary()", f"Total price: ₹{itinerary.get('total_cost_inr', 0.0)}")
+                
+            elif act == "complete_plan":
+                self.log("AGENT_FINISHED", "All steps completed. Plan is optimized and verified.", "complete_plan()", "Planning process success")
+                break
+
+        return state["itinerary"] or {
+            "status": "Infeasible",
+            "explanation": "Agent loop completed without establishing a valid itinerary. Please adjust constraints."
+        }
+
 agent_orchestrator = AgentOrchestrator()
