@@ -262,38 +262,6 @@ def plan_trip(req: PlanRequest):
     raw_attractions = sights_data["attractions"]
     raw_restaurants = sights_data["restaurants"]
 
-    attraction_candidates = []
-    for a in raw_attractions:
-        sentiment = sentiment_extractor.analyze_reviews(a.get("reviews", []))
-        tag_overlap = len(set(a["tags"]).intersection(set(req.interests)))
-        daily_budget = req.budget / delta
-        price_ratio = a["cost_inr"] / max(1.0, daily_budget)
-
-        attraction_candidates.append({
-            **a,
-            "rating": a["rating"] / 5.0,
-            "price_ratio": price_ratio,
-            "tag_overlap": tag_overlap,
-            "dist_to_center": 2.0,
-            "location_quality": sentiment["cleanliness_score"]
-        })
-
-    daily_budget = req.budget / delta
-    budget_ratio = min(1.0, daily_budget / 5000.0)
-    pace_val = 0.3 if req.pace == "relaxed" else 0.6 if req.pace == "moderate" else 0.9
-    luxury_pref = 0.8 if any(x in req.interests for x in ["heritage", "spa"]) else 0.3
-    user_vector = [budget_ratio, pace_val, float(req.travelers), luxury_pref]
-    
-    persona_name, persona_weights = persona_segmenter.predict_persona(user_vector)
-    scored_attractions = catboost_ranker.score_candidates(attraction_candidates, persona_weights, "attraction")
-
-    agent_orchestrator.log(
-        "Candidate Scoring",
-        "Applying CatBoost Ranker on sights & attractions based on user interests.",
-        "catboost_ranker.score_candidates()",
-        f"Scored {len(scored_attractions)} places"
-    )
-
     # Destination Hotel Stay
     fixed_hotel = {
         "id": req.selected_hotel.id,
@@ -385,15 +353,15 @@ def plan_trip(req: PlanRequest):
             "transport_mode": req.transport_mode,
             "travel_class": req.travel_class,
             "selected_transit": req.selected_transit.dict() if req.selected_transit else None,
-            "selected_hotel": req.selected_hotel.dict() if req.selected_hotel else None,
-            "selected_midway_hotel": req.selected_midway_hotel.dict() if req.selected_midway_hotel else None,
+            "selected_hotel": fixed_hotel,
+            "selected_midway_hotel": fixed_midway,
             "waypoints": [w.dict() for w in req.waypoints] if req.waypoints else [],
             "fuel_type": req.fuel_type,
             "vehicle_query": req.vehicle_query
         },
         raw_hotels=raw_hotels,
-        raw_restaurants=raw_restaurants,
-        scored_attractions=scored_attractions
+        raw_attractions=raw_attractions,
+        raw_restaurants=raw_restaurants
     )
 
     if itinerary["status"] == "Infeasible":

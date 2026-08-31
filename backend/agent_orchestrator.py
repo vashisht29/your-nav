@@ -352,14 +352,17 @@ class AgentOrchestrator:
 
         return state
 
-    def run_agentic_loop(self, start_req: Dict[str, Any], raw_hotels: list, raw_restaurants: list, scored_attractions: list) -> Dict[str, Any]:
+    def run_agentic_loop(self, start_req: Dict[str, Any], raw_hotels: list, raw_attractions: list, raw_restaurants: list) -> Dict[str, Any]:
         """
-        Executes a genuine ReAct loop. Decides tools dynamically, executes them,
-        and constructs the final plan using deterministic solvers.
+        Executes a genuine 7-stage ReAct loop. Decides tools dynamically, executes them,
+        imputes missing prices with XGBoost, runs NLP reviews sentiment extraction,
+        ranks candidates with CatBoost, and solves constraints with Google OR-Tools CP-SAT.
         """
         import json
         import requests
+        import pandas as pd
         from datetime import datetime
+        from ml_pipeline import PersonaSegmenter, CatBoostRanker, PriceImputer, SentimentExtractor
         
         self.reset_loop_safety()
         self.log(
@@ -382,34 +385,53 @@ class AgentOrchestrator:
             "travel_class": start_req["travel_class"],
             "resolved_origin": None,
             "resolved_destination": None,
+            "persona_name": None,
+            "persona_weights": None,
+            "price_imputed": False,
             "transit_candidates": [],
             "selected_transit": start_req.get("selected_transit"),
             "selected_hotel": start_req.get("selected_hotel"),
             "selected_midway_hotel": start_req.get("selected_midway_hotel"),
             "waypoints": start_req.get("waypoints", []),
-            "itinerary": None
+            "scored_attractions": [],
+            "itinerary": None,
+            "imputed_prices": {},
+            "backtrack_count": 0
         }
 
-        # Available tools list description
         tools_desc = """
         1. resolve_locations: Resolves coordinates for origin and destination.
-        2. search_transit: Searches flight/train/bus candidates.
-        3. solve_itinerary: Runs CP-SAT solver constraint logic to build day-by-day plan.
-        4. complete_plan: Ends planning and delivers the finalized travel blueprint.
+        2. run_persona_segmenter: Clusters the traveler profile using K-Means.
+        3. fetch_and_impute_data: Fills missing prices using XGBoost and runs review NLP extraction.
+        4. run_ml_ranker: Scores candidate attractions using CatBoost.
+        5. solve_itinerary: Runs CP-SAT solver constraint logic to build day-by-day plan.
+        6. complete_plan: Concludes planning once a valid optimized plan is verified.
         """
 
         api_key = os.getenv("GEMINI_API_KEY")
         GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
-        for step in range(6):  # Limit to max iterations
+        for step in range(12):  # Limit iterations for loop safety
             self.check_loop_safety()
             
-            # Build prompt showing current state and instructing tool call
+            # Formulate thought/action via Gemini (or fallback)
             prompt = f"""
             You are an autonomous Travel Planning Agent. You operate in a loop: OBSERVE ➔ THOUGHT ➔ ACTION ➔ OBSERVATION.
             
             CURRENT TRIP STATE:
-            {json.dumps(state, indent=2)}
+            {{
+                "origin": "{state['origin']}",
+                "destination": "{state['destination']}",
+                "resolved_origin": {json.dumps(state['resolved_origin'])},
+                "resolved_destination": {json.dumps(state['resolved_destination'])},
+                "persona_name": "{state['persona_name']}",
+                "price_imputed": {state['price_imputed']},
+                "transit_candidates_count": {len(state['transit_candidates'])},
+                "selected_transit": {json.dumps(state['selected_transit'].get('flight_number') if state['selected_transit'] else None)},
+                "scored_attractions_count": {len(state['scored_attractions'])},
+                "itinerary_status": "{state['itinerary'].get('status') if state['itinerary'] else None}",
+                "backtrack_count": {state['backtrack_count']}
+            }}
             
             AVAILABLE TOOLS:
             {tools_desc}
@@ -417,9 +439,13 @@ class AgentOrchestrator:
             INSTRUCTIONS:
             Decide the NEXT logical step. 
             - If resolved_origin or resolved_destination is null, call "resolve_locations".
-            - If resolved coordinates exist but selected_transit or transit_candidates is empty, call "search_transit".
-            - If transit and stay selections exist, run the "solve_itinerary" tool to formulate the optimized schedule.
-            - If a valid optimized itinerary exists in the state, call "complete_plan".
+            - If resolved coordinates exist but persona_name is null, call "run_persona_segmenter".
+            - If persona is set but selected_transit is null and transit_candidates is empty, call "search_transit".
+            - If transit exists but price_imputed is false, call "fetch_and_impute_data".
+            - If prices are imputed but scored_attractions is empty, call "run_ml_ranker".
+            - If scored_attractions are ready and itinerary is null, call "solve_itinerary".
+            - If itinerary status is "Infeasible" and backtrack_count < 3, you MUST run "solve_itinerary" again with bounds relaxed.
+            - If itinerary is "Optimal" or backtracking limits are met, call "complete_plan".
             
             Return ONLY a valid JSON object in this format (no markdown code blocks, no backticks, no other text):
             {{
@@ -445,34 +471,53 @@ class AgentOrchestrator:
                 except Exception as e:
                     print("Agent call failed, using deterministic fallback:", e)
                     
-            # Deterministic Fallback if LLM is offline or fails to parse
             if not action_data:
+                # Deterministic Fallback loop matching the flow
                 if not state["resolved_origin"] or not state["resolved_destination"]:
-                    action_data = {"thought": "Deterministic agent fallback: Resolving coordinates.", "action": "resolve_locations", "parameters": {}}
+                    action_data = {"thought": "Resolving coordinates fallback.", "action": "resolve_locations", "parameters": {}}
+                elif not state["persona_name"]:
+                    action_data = {"thought": "Clustering persona fallback.", "action": "run_persona_segmenter", "parameters": {}}
                 elif not state["selected_transit"] and not state["transit_candidates"]:
-                    action_data = {"thought": "Deterministic agent fallback: Searching transport options.", "action": "search_transit", "parameters": {}}
-                elif not state["itinerary"]:
-                    action_data = {"thought": "Deterministic agent fallback: Running CP-SAT solver constraint logic.", "action": "solve_itinerary", "parameters": {}}
+                    action_data = {"thought": "Searching transport options fallback.", "action": "search_transit", "parameters": {}}
+                elif not state["price_imputed"]:
+                    action_data = {"thought": "Imputing missing price indicators fallback.", "action": "fetch_and_impute_data", "parameters": {}}
+                elif not state["scored_attractions"]:
+                    action_data = {"thought": "Ranking attractions fallback.", "action": "run_ml_ranker", "parameters": {}}
+                elif not state["itinerary"] or (state["itinerary"].get("status") == "Infeasible" and state["backtrack_count"] < 3):
+                    action_data = {"thought": "Running CP-SAT optimization fallback.", "action": "solve_itinerary", "parameters": {}}
                 else:
-                    action_data = {"thought": "Deterministic agent fallback: Finishing planning.", "action": "complete_plan", "parameters": {}}
+                    action_data = {"thought": "Finalizing travel blueprint.", "action": "complete_plan", "parameters": {}}
 
-            # Log Agent thought
+            # Log thoughts
             self.log(
                 "AGENT_THOUGHT",
                 action_data["thought"],
                 f"select_tool(name='{action_data['action']}')",
-                f"Inputs: {action_data.get('parameters', {})}"
+                f"State iteration: {step}"
             )
 
-            # Execute Tool
             act = action_data["action"]
             if act == "resolve_locations":
                 orig_geo = geocode_destination(state["origin"])
                 dest_geo = geocode_destination(state["destination"])
                 state["resolved_origin"] = orig_geo
                 state["resolved_destination"] = dest_geo
-                self.log("TOOL_EXECUTION", f"Resolved coordinates: {state['origin']} ➔ {orig_geo}, {state['destination']} ➔ {dest_geo}", "resolve_locations()", "Success")
+                self.log("TOOL_EXECUTION", f"Resolved coords: {state['origin']}➔{orig_geo}, {state['destination']}➔{dest_geo}", "resolve_locations()", "Success")
                 
+            elif act == "run_persona_segmenter":
+                delta = (datetime.strptime(state["return_date"], "%Y-%m-%d") - datetime.strptime(state["departure_date"], "%Y-%m-%d")).days
+                daily_budget = state["budget"] / max(1, delta)
+                budget_ratio = min(1.0, daily_budget / 5000.0)
+                pace_val = 0.3 if state["pace"] == "relaxed" else 0.6 if state["pace"] == "moderate" else 0.9
+                luxury_pref = 0.8 if any(x in state["interests"] for x in ["heritage", "spa"]) else 0.3
+                user_vector = [budget_ratio, pace_val, float(state["travelers"]), luxury_pref]
+                
+                segmenter = PersonaSegmenter()
+                persona_name, persona_weights = segmenter.predict_persona(user_vector)
+                state["persona_name"] = persona_name
+                state["persona_weights"] = persona_weights
+                self.log("TOOL_EXECUTION", f"K-Means segment: '{persona_name}' loaded.", "run_persona_segmenter()", f"Weights: {persona_weights}")
+
             elif act == "search_transit":
                 candidates = self.search_transport(
                     origin=state["origin"],
@@ -487,19 +532,63 @@ class AgentOrchestrator:
                 state["transit_candidates"] = candidates
                 if candidates and not state["selected_transit"]:
                     state["selected_transit"] = candidates[0]
-                self.log("TOOL_EXECUTION", f"Transit options retrieved. Found {len(candidates)} candidates.", "search_transit()", f"Selected default: {state['selected_transit'].get('flight_number') or state['selected_transit'].get('train_number') or 'Self-Drive'}")
+                self.log("TOOL_EXECUTION", f"Found {len(candidates)} candidates.", "search_transit()", f"Selected: {state['selected_transit'].get('flight_number') or 'Road/Rail'}")
+
+            elif act == "fetch_and_impute_data":
+                # Run XGBoost price imputer & NLP reviews sentiment analysis
+                imputer = PriceImputer()
+                sentiment_engine = SentimentExtractor()
                 
+                # Format candidate prices
+                imputed = imputer.train_and_impute(raw_hotels, raw_attractions)
+                state["imputed_prices"] = imputed
+                
+                # Apply sentiment analysis metrics
+                for a in raw_attractions:
+                    sent = sentiment_engine.analyze_reviews(a.get("reviews", []))
+                    a["sentiment_cleanliness"] = sent["cleanliness_score"]
+                
+                state["price_imputed"] = True
+                self.log("TOOL_EXECUTION", f"XGBoost filled missing pricing tags. NLP processed reviews.", "fetch_and_impute_data()", f"Imputed entries count: {len(imputed)}")
+
+            elif act == "run_ml_ranker":
+                # CatBoost ranking
+                delta = (datetime.strptime(state["return_date"], "%Y-%m-%d") - datetime.strptime(state["departure_date"], "%Y-%m-%d")).days
+                daily_budget = state["budget"] / max(1, delta)
+                
+                # Prep candidates for ranker
+                prep_attractions = []
+                for a in raw_attractions:
+                    overlap = sum(1 for tag in state["interests"] if tag in a.get("tags", []))
+                    price_ratio = (state["imputed_prices"].get(a["id"]) or a.get("cost_inr") or 0.0) / max(1.0, daily_budget)
+                    prep_attractions.append({
+                        **a,
+                        "rating": (a.get("rating") or 4.0) / 5.0,
+                        "price_ratio": price_ratio,
+                        "tag_overlap": float(overlap),
+                        "dist_to_center": 2.0
+                    })
+                
+                ranker = CatBoostRanker()
+                scored = ranker.score_candidates(prep_attractions, state["persona_weights"], "attraction")
+                state["scored_attractions"] = scored
+                self.log("TOOL_EXECUTION", "CatBoost scores computed.", "run_ml_ranker()", f"Attractions sorted: {len(scored)}")
+
             elif act == "solve_itinerary":
                 # Run CP-SAT solver
                 delta = (datetime.strptime(state["return_date"], "%Y-%m-%d") - datetime.strptime(state["departure_date"], "%Y-%m-%d")).days
                 
+                # Budget adjustment during backtracking / self-healing
+                adjusted_budget = state["budget"]
+                if state["backtrack_count"] > 0:
+                    adjusted_budget += state["backtrack_count"] * 5000.0
+                    self.log("SELF_HEALING", f"Relaxing solver boundary constraints. Adjusted budget threshold to ₹{adjusted_budget}", "self_heal()", f"Backtrack iteration: {state['backtrack_count']}")
+                
                 fixed_hotel = state["selected_hotel"]
                 if not fixed_hotel and raw_hotels:
                     fixed_hotel = raw_hotels[0]
-                
                 fixed_midway = state["selected_midway_hotel"]
                 
-                # Setup transit estimate mapping
                 transit_estimate = {
                     "cost_inr": state["selected_transit"].get("total_price_inr", 0.0) / state["travelers"] if state["transport_mode"] != "self-drive" else state["selected_transit"].get("total_price_inr", 0.0),
                     "duration_hrs": state["selected_transit"].get("duration_hrs", 3.0),
@@ -512,12 +601,11 @@ class AgentOrchestrator:
                 
                 from solver import solve_itinerary
                 attraction_limit = 12 if delta <= 3 else (9 if delta <= 5 else 6)
-                
                 itinerary = solve_itinerary(
                     days=delta,
-                    budget=state["budget"],
+                    budget=adjusted_budget,
                     hotel_candidates=[fixed_hotel] if fixed_hotel else raw_hotels[:3],
-                    attraction_candidates=scored_attractions[:attraction_limit],
+                    attraction_candidates=state["scored_attractions"][:attraction_limit],
                     restaurant_candidates=raw_restaurants,
                     transit_estimate=transit_estimate,
                     group_size=state["travelers"],
@@ -527,9 +615,14 @@ class AgentOrchestrator:
                     pace=state["pace"],
                     lang="en"
                 )
-                state["itinerary"] = itinerary
-                self.log("TOOL_EXECUTION", f"Solver complete. Solver status: {itinerary['status']}", "solve_itinerary()", f"Total price: ₹{itinerary.get('total_cost_inr', 0.0)}")
                 
+                state["itinerary"] = itinerary
+                
+                if itinerary["status"] == "Infeasible":
+                    state["backtrack_count"] += 1
+                
+                self.log("TOOL_EXECUTION", f"Solver complete. Status: {itinerary['status']}", "solve_itinerary()", f"Total cost: ₹{itinerary.get('total_cost_inr', 0.0)}")
+
             elif act == "complete_plan":
                 self.log("AGENT_FINISHED", "All steps completed. Plan is optimized and verified.", "complete_plan()", "Planning process success")
                 break
