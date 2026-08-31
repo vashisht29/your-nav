@@ -145,25 +145,47 @@ DEMO_FLIGHTS = [
 
 DEMO_TRAINS = [
     {
+        "id": "demo_t_vande_bharat",
+        "train_name": "Vande Bharat Express (20978)",
+        "travel_class": "Executive Chair Car (EC)",
+        "departure_time": "06:20",
+        "arrival_time": "10:15",
+        "duration_hrs": 3.9,
+        "single_ticket_price": 1250.0,
+        "delay_rate": "2%",
+        "reviews": ["High speed, ultra clean, comfortable plush seating.", "Great breakfast served onboard."]
+    },
+    {
         "id": "demo_t_shatabdi",
-        "train_name": "Jaipur Shatabdi Express (12015)",
+        "train_name": "Shatabdi Express (12015)",
         "travel_class": "AC Chair Car (CC)",
         "departure_time": "06:10",
         "arrival_time": "10:40",
         "duration_hrs": 4.5,
         "single_ticket_price": 850.0,
         "delay_rate": "5%",
-        "reviews": ["Served tea, snacks and breakfast. Very clean coaches.", "Fastest rail connectivity to Jaipur."]
+        "reviews": ["Served tea, snacks and breakfast. Very clean coaches.", "Fastest rail connectivity."]
+    },
+    {
+        "id": "demo_t_rajdhani",
+        "train_name": "Rajdhani Superfast Express (12414)",
+        "travel_class": "AC 2-Tier (2A)",
+        "departure_time": "20:30",
+        "arrival_time": "01:15",
+        "duration_hrs": 4.75,
+        "single_ticket_price": 1450.0,
+        "delay_rate": "4%",
+        "reviews": ["Punctual service and clean sleeper berths.", "Good dinner meal included."]
     },
     {
         "id": "demo_t_double_decker",
-        "train_name": "Jaipur Double Decker (12986)",
+        "train_name": "Intercity Superfast (12986)",
         "travel_class": "AC Chair Car (CC)",
         "departure_time": "17:35",
         "arrival_time": "22:05",
         "duration_hrs": 4.5,
         "single_ticket_price": 680.0,
         "delay_rate": "12%",
-        "reviews": ["Unique double decker layout. Fun travel experience.", "A bit crowded but runs on schedule."]
+        "reviews": ["Comfortable AC seating.", "Convenient evening departure."]
     }
 ]

@@ -391,6 +391,18 @@ def search_transit_candidates(origin: str, destination: str, departure_date: str
             hash_num = (hash(o_code + d_code) % 700) + 100
             flights = [
                 {
+                    "id": "f_gen_vistara_0",
+                    "airline": "Vistara",
+                    "flight_number": f"UK-{hash_num + 80}",
+                    "departure_time": "06:15",
+                    "arrival_time": "08:45",
+                    "duration_hrs": round(dist_km / 650.0 + 0.5, 1),
+                    "single_ticket_price": round(3600.0 + (dist_km * 4.2), 0),
+                    "delay_rate": "2%",
+                    "reviews": ["Premium comfort and on-time service.", "Complimentary hot breakfast."],
+                    "data_status": "DEMO"
+                },
+                {
                     "id": "f_gen_indigo_1",
                     "airline": "IndiGo",
                     "flight_number": f"6E-{hash_num}",
@@ -412,6 +424,18 @@ def search_transit_candidates(origin: str, destination: str, departure_date: str
                     "single_ticket_price": round(3200.0 + (dist_km * 4.0), 0),
                     "delay_rate": "8%",
                     "reviews": ["Baggage allowance is great.", "Included complimentary snacks."],
+                    "data_status": "DEMO"
+                },
+                {
+                    "id": "f_gen_spicejet_3",
+                    "airline": "SpiceJet",
+                    "flight_number": f"SG-{hash_num + 45}",
+                    "departure_time": "18:40",
+                    "arrival_time": "21:10",
+                    "duration_hrs": round(dist_km / 650.0 + 0.5, 1),
+                    "single_ticket_price": round(2300.0 + (dist_km * 3.2), 0),
+                    "delay_rate": "5%",
+                    "reviews": ["Convenient evening departure.", "Affordable direct flight."],
                     "data_status": "DEMO"
                 }
             ]
@@ -446,17 +470,19 @@ def search_transit_candidates(origin: str, destination: str, departure_date: str
 
     elif mode == "bus":
         operators = [
-            {"name": "SRS Travels", "type": "Volvo AC Multi-Axle Sleeper", "base_price": 750.0, "delay_rate": "10%"},
+            {"name": "IntrCity SmartBus", "type": "Volvo Multi-Axle AC Sleeper", "base_price": 850.0, "delay_rate": "4%"},
+            {"name": "SRS Travels", "type": "Scania AC Multi-Axle Semi-Sleeper", "base_price": 750.0, "delay_rate": "7%"},
             {"name": "VRL Travels", "type": "AC Sleeper (2+1)", "base_price": 650.0, "delay_rate": "8%"},
-            {"name": "State Transport RTC", "type": "Express Non-AC", "base_price": 320.0, "delay_rate": "15%"}
+            {"name": "State Transport RTC", "type": "Express Superfast Non-AC", "base_price": 320.0, "delay_rate": "12%"}
         ]
 
         bus_options = []
+        dep_hours = [6, 11, 16, 21]
         for idx, b in enumerate(operators):
             single_price = round((b["base_price"] * (dist_km / 250.0)) + random.randint(-50, 80), 2)
             single_price = max(120.0, single_price)
             dur_hrs = round((dist_km / 50.0) + 1.2, 1)
-            dep_hour = random.choice([8, 15, 22])
+            dep_hour = dep_hours[idx % len(dep_hours)]
 
             bus_options.append({
                 "id": f"b_op_{idx}",
@@ -468,7 +494,7 @@ def search_transit_candidates(origin: str, destination: str, departure_date: str
                 "single_ticket_price": single_price,
                 "total_price_inr": single_price * travelers,
                 "delay_rate": b["delay_rate"],
-                "reviews": [f"AC was cooling perfectly.", "Arrived on time at the highway bypass drop point."]
+                "reviews": [f"AC and onboard amenities were great.", "Arrived on time at boarding terminal."]
             })
         return bus_options
 

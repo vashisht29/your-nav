@@ -1146,17 +1146,6 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* View More Options handler */}
-              <div className="text-right">
-                <button
-                  type="button"
-                  onClick={() => alert("Connecting live Indian listings engines...")}
-                  className="text-xs text-primary-500 hover:text-primary-600 font-bold underline"
-                >
-                  {t.viewMore}
-                </button>
-              </div>
-
               <div className="flex gap-2">
                 <button
                   onClick={() => setStep(1)}
