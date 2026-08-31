@@ -223,11 +223,11 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
     # 4. Objective
     score_terms = []
     for i, a in enumerate(attraction_candidates):
-        score_weight = int(a["ml_score"] * 1000)
+        score_weight = int(a.get("ml_score", 1.0) * 1000)
         score_terms.append(score_weight * sum(x_a[(i, d)] for d in range(days)))
 
     for h, hotel in enumerate(hotel_candidates):
-        score_weight = int(hotel["ml_score"] * 1000)
+        score_weight = int(hotel.get("ml_score", 1.0) * 1000)
         score_terms.append(score_weight * hotel_selected[h])
 
     model.Maximize(sum(score_terms))

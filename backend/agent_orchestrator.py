@@ -1,5 +1,6 @@
 # backend/agent_orchestrator.py
 
+import os
 import json
 import math
 import requests
@@ -589,6 +590,11 @@ class AgentOrchestrator:
                     fixed_hotel = raw_hotels[0]
                 fixed_midway = state["selected_midway_hotel"]
                 
+                hotel_list = [fixed_hotel] if fixed_hotel else raw_hotels[:3]
+                for h in hotel_list:
+                    if "ml_score" not in h:
+                        h["ml_score"] = 1.0
+
                 transit_estimate = {
                     "cost_inr": state["selected_transit"].get("total_price_inr", 0.0) / state["travelers"] if state["transport_mode"] != "self-drive" else state["selected_transit"].get("total_price_inr", 0.0),
                     "duration_hrs": state["selected_transit"].get("duration_hrs", 3.0),
@@ -604,7 +610,7 @@ class AgentOrchestrator:
                 itinerary = solve_itinerary(
                     days=delta,
                     budget=adjusted_budget,
-                    hotel_candidates=[fixed_hotel] if fixed_hotel else raw_hotels[:3],
+                    hotel_candidates=hotel_list,
                     attraction_candidates=state["scored_attractions"][:attraction_limit],
                     restaurant_candidates=raw_restaurants,
                     transit_estimate=transit_estimate,
