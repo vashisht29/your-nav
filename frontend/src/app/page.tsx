@@ -133,7 +133,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     noActiveItinerary: "No Active Itinerary",
     foodThaliEstimate: "Food thali estimate (3 days)",
     carRoute: "Car Route",
-    midwayStayLabel: "Midway Stay"
+    midwayStayLabel: "Midway Stay",
+    hotelSelected: "Selected Stay"
   },
   hi: {
     title: "स्मार्ट AI ट्रेवल",
@@ -220,7 +221,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     noActiveItinerary: "कोई सक्रिय यात्रा कार्यक्रम नहीं",
     foodThaliEstimate: "भोजन थाली अनुमान (3 दिन)",
     carRoute: "कार मार्ग",
-    midwayStayLabel: "मिडवे स्टे"
+    midwayStayLabel: "मिडवे स्टे",
+    hotelSelected: "चुना गया होटल"
   }
 };
 
@@ -539,6 +541,9 @@ export default function Home() {
           setInfeasibleAlternatives(data.alternatives || []);
           setItinerary(null);
         } else {
+          if (data.cost_breakdown?.allocated_budget && data.cost_breakdown.allocated_budget > budget) {
+            setBudget(data.cost_breakdown.allocated_budget);
+          }
           setItinerary(data);
           setAgentLogs(data.agent_logs || []);
           setStep(5);
@@ -774,7 +779,7 @@ export default function Home() {
               <div className="space-y-1.5 text-[10px] text-slate-500 font-bold border-t pt-2">
                 {selectedTransit && (
                   <div className="flex justify-between items-center">
-                    <span>🚗 {selectedTransit.airline || selectedTransit.train_name || selectedTransit.operator || t.carRoute}</span>
+                    <span>{selectedTransit.airline ? "✈️" : (selectedTransit.train_name ? "🚆" : (selectedTransit.operator ? "🚌" : "🚗"))} {selectedTransit.airline || selectedTransit.train_name || selectedTransit.operator || t.carRoute}</span>
                     <span className="font-extrabold text-slate-700">₹{selectedTransit.total_price_inr}</span>
                   </div>
                 )}
