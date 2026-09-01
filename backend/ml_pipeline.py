@@ -212,16 +212,21 @@ class CatBoostRanker:
             if dist_val is None or pd.isna(dist_val):
                 dist_val = 2.0
                 
+            sentiment_val = c.get("sentiment_score", 0.8)
+            if sentiment_val is None or pd.isna(sentiment_val):
+                sentiment_val = 0.8
+
             normalized_candidates.append({
                 **c,
                 "rating": rating_val,
                 "price_ratio": price_ratio,
                 "tag_overlap": tag_overlap,
-                "dist_to_center": dist_val
+                "dist_to_center": dist_val,
+                "sentiment_score": sentiment_val
             })
 
         df = pd.DataFrame(normalized_candidates)
-        features = ["price_ratio", "rating", "tag_overlap", "dist_to_center"]
+        features = ["price_ratio", "rating", "tag_overlap", "dist_to_center", "sentiment_score"]
 
         # Predict
         if category == "hotel":
