@@ -411,6 +411,7 @@ def plan_trip(req: PlanRequest):
             "transport_mode": req.transport_mode
         })
 
+        persona_name = itinerary.get("persona", "Balanced Explorer")
         return {
             "status": "Infeasible",
             "message": itinerary.get("explanation") or f"This combination exceeds your ₹{req.budget} budget. We found better alternatives that keep the trip within budget while maintaining quality.",
@@ -418,6 +419,7 @@ def plan_trip(req: PlanRequest):
             "alternatives": alternatives
         }
 
+    persona_name = itinerary.get("persona", "Balanced Explorer")
     explanation = generate_itinerary_explanation(itinerary, persona_name, lang=req.lang)
 
     agent_orchestrator.log(

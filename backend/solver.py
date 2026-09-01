@@ -181,10 +181,8 @@ def solve_itinerary(days, budget, hotel_candidates, attraction_candidates, resta
                 model.AddBoolAnd([x_a[(i, d)], x_a[(j, d)]]).OnlyEnforceIf(both_visited)
 
                 i_before_j = model.NewBoolVar(f'i_before_j_{d}_{i}_{j}')
-                model.Add(start_time[i] + dur_i + travel_buffer <= start_time[j]).OnlyEnforceIf(i_before_j)
-                model.Add(start_time[j] + dur_j + travel_buffer <= start_time[i]).OnlyEnforceIf(i_before_j.Not())
-                
-                model.Add(i_before_j == 1).OnlyEnforceIf(both_visited)
+                model.Add(start_time[i] + dur_i + travel_buffer <= start_time[j]).OnlyEnforceIf([both_visited, i_before_j])
+                model.Add(start_time[j] + dur_j + travel_buffer <= start_time[i]).OnlyEnforceIf([both_visited, i_before_j.Not()])
 
     # 3. Cost Calculations
     if midway_hotel:

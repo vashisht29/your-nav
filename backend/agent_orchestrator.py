@@ -633,6 +633,9 @@ class AgentOrchestrator:
                 self.log("AGENT_FINISHED", "All steps completed. Plan is optimized and verified.", "complete_plan()", "Planning process success")
                 break
 
+        if state["itinerary"] and isinstance(state["itinerary"], dict):
+            state["itinerary"]["persona"] = state["persona_name"] or "Balanced Explorer"
+
         return state["itinerary"] or {
             "status": "Infeasible",
             "explanation": "Agent loop completed without establishing a valid itinerary. Please adjust constraints."
