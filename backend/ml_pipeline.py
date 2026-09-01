@@ -1,16 +1,28 @@
 # backend/ml_pipeline.py
 
+import os
+import pickle
 import numpy as np
 import pandas as pd
 from xgboost import XGBRegressor
 from sklearn.cluster import KMeans
 from catboost import CatBoostRegressor
 
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "ml_models")
+
 # 1. XGBoost Price Imputation
 class PriceImputer:
     def __init__(self):
-        self.model = XGBRegressor(n_estimators=30, max_depth=3, learning_rate=0.1)
+        self.model = XGBRegressor(n_estimators=100, max_depth=5, learning_rate=0.08)
         self.is_trained = False
+        
+        model_path = os.path.join(MODEL_DIR, "xgboost_imputer.json")
+        if os.path.exists(model_path):
+            try:
+                self.model.load_model(model_path)
+                self.is_trained = True
+            except Exception:
+                pass
 
     def train_and_impute(self, hotel_candidates, attraction_candidates):
         records = []
@@ -36,7 +48,7 @@ class PriceImputer:
                 })
 
         imputed_prices = {}
-        if len(records) > 2:
+        if not self.is_trained and len(records) > 2:
             df = pd.DataFrame(records)
             X_train = df[["category", "lat", "lng", "star_rating", "distance_from_center"]]
             y_train = df["cost_inr"]
@@ -108,18 +120,29 @@ class SentimentExtractor:
 class PersonaSegmenter:
     def __init__(self):
         self.kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
-        # Vector: [budget_ratio, pace_preference, group_size, luxury_preference]
-        self.historical_data = np.array([
-            [0.1, 0.2, 1, 0.1],  # Budget Solo
-            [0.2, 0.3, 2, 0.2],  # Budget Couple
-            [0.9, 0.8, 2, 0.9],  # Luxury Couple
-            [0.8, 0.7, 1, 0.8],  # Luxury Solo
-            [0.5, 0.9, 1, 0.4],  # Fast Explorer Solo
-            [0.4, 0.9, 2, 0.5],  # Fast Explorer Couple
-            [0.6, 0.2, 4, 0.6],  # Family Relaxed (Group)
-            [0.5, 0.3, 5, 0.5],  # Family Relaxed (Large Group)
-        ])
-        self.kmeans.fit(self.historical_data)
+        model_path = os.path.join(MODEL_DIR, "kmeans_persona.pkl")
+        loaded = False
+        if os.path.exists(model_path):
+            try:
+                with open(model_path, "rb") as f:
+                    self.kmeans = pickle.load(f)
+                loaded = True
+            except Exception:
+                pass
+
+        if not loaded:
+            # Vector: [budget_ratio, pace_preference, group_size, luxury_preference]
+            self.historical_data = np.array([
+                [0.1, 0.2, 1, 0.1],  # Budget Solo
+                [0.2, 0.3, 2, 0.2],  # Budget Couple
+                [0.9, 0.8, 2, 0.9],  # Luxury Couple
+                [0.8, 0.7, 1, 0.8],  # Luxury Solo
+                [0.5, 0.9, 1, 0.4],  # Fast Explorer Solo
+                [0.4, 0.9, 2, 0.5],  # Fast Explorer Couple
+                [0.6, 0.2, 4, 0.6],  # Family Relaxed (Group)
+                [0.5, 0.3, 5, 0.5],  # Family Relaxed (Large Group)
+            ])
+            self.kmeans.fit(self.historical_data)
         
         self.personas = {
             0: "Budget Saver",
@@ -142,18 +165,29 @@ class PersonaSegmenter:
 # 4. CatBoost Ranker
 class CatBoostRanker:
     def __init__(self):
-        self.hotel_ranker = CatBoostRegressor(iterations=15, depth=3, learning_rate=0.1, verbose=0)
-        self.attraction_ranker = CatBoostRegressor(iterations=15, depth=3, learning_rate=0.1, verbose=0)
+        self.hotel_ranker = CatBoostRegressor(iterations=200, depth=6, learning_rate=0.05, verbose=0)
+        self.attraction_ranker = CatBoostRegressor(iterations=200, depth=6, learning_rate=0.05, verbose=0)
+        
+        model_path = os.path.join(MODEL_DIR, "catboost_ranker.cbm")
+        loaded = False
+        if os.path.exists(model_path):
+            try:
+                self.hotel_ranker.load_model(model_path)
+                self.attraction_ranker.load_model(model_path)
+                loaded = True
+            except Exception:
+                pass
 
-        dummy_features = pd.DataFrame({
-            "price_ratio": [0.1, 0.5, 0.9, 1.2],
-            "rating": [0.9, 0.8, 0.7, 0.5],
-            "tag_overlap": [3, 2, 1, 0],
-            "dist_to_center": [0.5, 1.5, 3.0, 5.0]
-        })
-        dummy_scores = pd.Series([0.9, 0.7, 0.5, 0.2])
-        self.hotel_ranker.fit(dummy_features, dummy_scores)
-        self.attraction_ranker.fit(dummy_features, dummy_scores)
+        if not loaded:
+            dummy_features = pd.DataFrame({
+                "price_ratio": [0.1, 0.5, 0.9, 1.2],
+                "rating": [0.9, 0.8, 0.7, 0.5],
+                "tag_overlap": [3, 2, 1, 0],
+                "dist_to_center": [0.5, 1.5, 3.0, 5.0]
+            })
+            dummy_scores = pd.Series([0.9, 0.7, 0.5, 0.2])
+            self.hotel_ranker.fit(dummy_features, dummy_scores)
+            self.attraction_ranker.fit(dummy_features, dummy_scores)
 
     def score_candidates(self, candidates, persona_weights, category):
         if not candidates:
