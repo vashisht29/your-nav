@@ -145,22 +145,34 @@ class PersonaSegmenter:
             self.kmeans.fit(self.historical_data)
         
         self.personas = {
-            0: "Budget Saver",
-            1: "Luxury Traveler",
-            2: "Fast Explorer",
-            3: "Family Relaxed"
+            0: "Budget Explorer",
+            1: "Luxury Connoisseur",
+            2: "Family Heritage & Leisure",
+            3: "Fast Thrill & Nature Seeker",
+            4: "Spiritual & Cultural Pilgrim"
         }
         self.weights = {
-            "Budget Saver": {"price_ratio": 2.0, "rating": 0.5, "tag_overlap": 1.0, "dist_to_center": 1.0},
-            "Luxury Traveler": {"price_ratio": 0.3, "rating": 2.0, "tag_overlap": 1.0, "dist_to_center": 1.0},
-            "Fast Explorer": {"price_ratio": 1.0, "rating": 1.0, "tag_overlap": 2.2, "dist_to_center": 0.5},
-            "Family Relaxed": {"price_ratio": 1.0, "rating": 1.2, "tag_overlap": 1.0, "dist_to_center": 1.5}
+            "Budget Explorer": {"price_ratio": 2.2, "rating": 0.6, "tag_overlap": 1.2, "dist_to_center": 1.0},
+            "Luxury Connoisseur": {"price_ratio": 0.3, "rating": 2.2, "tag_overlap": 1.0, "dist_to_center": 1.2},
+            "Family Heritage & Leisure": {"price_ratio": 1.0, "rating": 1.4, "tag_overlap": 1.8, "dist_to_center": 1.4},
+            "Fast Thrill & Nature Seeker": {"price_ratio": 1.1, "rating": 1.0, "tag_overlap": 2.5, "dist_to_center": 0.6},
+            "Spiritual & Cultural Pilgrim": {"price_ratio": 1.3, "rating": 1.5, "tag_overlap": 2.2, "dist_to_center": 1.0}
         }
 
     def predict_persona(self, user_vector):
-        cluster_id = int(self.kmeans.predict([user_vector])[0])
-        name = self.personas[cluster_id]
-        return name, self.weights[name]
+        vec = list(user_vector)
+        # Ensure 6 features for KMeans input
+        if len(vec) == 4:
+            vec = vec + [0.5, 0.5]
+        elif len(vec) > 6:
+            vec = vec[:6]
+        elif len(vec) < 6:
+            vec = vec + [0.5] * (6 - len(vec))
+            
+        cluster_id = int(self.kmeans.predict([vec])[0])
+        cluster_id = cluster_id % len(self.personas)
+        name = self.personas.get(cluster_id, "Balanced Explorer")
+        return name, self.weights.get(name, {"price_ratio": 1.0, "rating": 1.0, "tag_overlap": 1.0, "dist_to_center": 1.0})
 
 # 4. CatBoost Ranker
 class CatBoostRanker:

@@ -510,8 +510,12 @@ class AgentOrchestrator:
                 daily_budget = state["budget"] / max(1, delta)
                 budget_ratio = min(1.0, daily_budget / 5000.0)
                 pace_val = 0.3 if state["pace"] == "relaxed" else 0.6 if state["pace"] == "moderate" else 0.9
-                luxury_pref = 0.8 if any(x in state["interests"] for x in ["heritage", "spa"]) else 0.3
-                user_vector = [budget_ratio, pace_val, float(state["travelers"]), luxury_pref]
+                group_size_norm = min(1.0, float(state["travelers"]) / 6.0)
+                luxury_pref = 0.8 if any(x in state["interests"] for x in ["heritage", "spa", "luxury"]) else 0.3
+                heritage_pref = 0.9 if any(x.lower() in ["heritage", "spiritual", "culture", "history", "architecture"] for x in state["interests"]) else 0.2
+                adventure_pref = 0.9 if any(x.lower() in ["adventure", "nature", "trekking", "wildlife", "outdoors"] for x in state["interests"]) else 0.2
+                
+                user_vector = [budget_ratio, pace_val, group_size_norm, luxury_pref, heritage_pref, adventure_pref]
                 
                 segmenter = PersonaSegmenter()
                 persona_name, persona_weights = segmenter.predict_persona(user_vector)
