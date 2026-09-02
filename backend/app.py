@@ -514,6 +514,24 @@ def trigger_trip_event(req: TripEventRequest):
         "agent_logs": agent_orchestrator.logs
     }
 
+from pan_india_destinations import search_pan_india_destinations, log_unsupported_destination
+
+@app.get("/api/destinations/autocomplete")
+def autocomplete_destinations(q: str = ""):
+    return search_pan_india_destinations(q, limit=8)
+
+class RequestLocationBody(BaseModel):
+    destination: str
+    origin: Optional[str] = ""
+
+@app.post("/api/destinations/request-location")
+def request_unsupported_location(req: RequestLocationBody):
+    log_unsupported_destination(req.destination, req.origin)
+    return {
+        "status": "success",
+        "message": f"Humne aapki location '{req.destination}' ko note kar liya hai aur hamari team ise jald hi database me add karegi!"
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

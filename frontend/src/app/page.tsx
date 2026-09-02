@@ -245,23 +245,47 @@ export default function Home() {
   // Setup Parameters
   const [origin, setOrigin] = useState("Delhi");
   const [destination, setDestination] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [originSuggestions, setOriginSuggestions] = useState<any[]>([]);
+  const [destSuggestions, setDestSuggestions] = useState<any[]>([]);
+  const [didYouMean, setDidYouMean] = useState<string | null>(null);
+  const [unsupportedToast, setUnsupportedToast] = useState<string | null>(null);
   const [agentLogs, setAgentLogs] = useState<any[]>([]);
+
+  const handleOriginChange = async (val: string) => {
+    setOrigin(val);
+    if (val.trim().length >= 1) {
+      try {
+        const res = await fetch(`http://localhost:8000/api/destinations/autocomplete?q=${encodeURIComponent(val)}`);
+        if (res.status === 200) {
+          const data = await res.json();
+          setOriginSuggestions(data.results || []);
+        }
+      } catch (e) {
+        console.error("Origin suggestions fetch failed", e);
+      }
+    } else {
+      setOriginSuggestions([]);
+    }
+  };
 
   const handleDestinationChange = async (val: string) => {
     setDestination(val);
-    if (val.trim().length >= 3) {
+    setDidYouMean(null);
+    if (val.trim().length >= 1) {
       try {
-        const res = await fetch(`http://localhost:8000/api/search/suggestions?q=${encodeURIComponent(val)}`);
+        const res = await fetch(`http://localhost:8000/api/destinations/autocomplete?q=${encodeURIComponent(val)}`);
         if (res.status === 200) {
           const data = await res.json();
-          setSuggestions(data.suggestions || []);
+          setDestSuggestions(data.results || []);
+          if (data.did_you_mean && data.did_you_mean.toLowerCase() !== val.trim().toLowerCase()) {
+            setDidYouMean(data.did_you_mean);
+          }
         }
       } catch (e) {
-        console.error("Suggestions fetch failed", e);
+        console.error("Destination suggestions fetch failed", e);
       }
     } else {
-      setSuggestions([]);
+      setDestSuggestions([]);
     }
   };
   const [depDate, setDepDate] = useState("2026-09-10");
@@ -424,6 +448,23 @@ export default function Home() {
     setSearchLoading(true);
 
     try {
+      // Check if destination is recognized in our pan-India directory
+      try {
+        const checkRes = await fetch(`http://localhost:8000/api/destinations/autocomplete?q=${encodeURIComponent(destination)}`);
+        if (checkRes.status === 200) {
+          const checkData = await checkRes.json();
+          if (!checkData.results || checkData.results.length === 0) {
+            fetch("http://localhost:8000/api/destinations/request-location", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ destination, origin })
+            }).catch(() => {});
+            setUnsupportedToast(`📍 Location Request Logged: Humne aapki location "${destination}" ko database wishlist me add kar liya hai! Live mapping se results load ho rahe hain.`);
+            setTimeout(() => setUnsupportedToast(null), 8000);
+          }
+        }
+      } catch (err) {}
+
       const transitRes = await fetch("http://localhost:8000/api/search/transit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -842,37 +883,97 @@ export default function Home() {
           {/* STEP 1: Parameters */}
           {step === 1 && (
             <div className="space-y-4">
-              <div>
+              {/* Unsupported Wishlist Toast Banner */}
+              {unsupportedToast && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 space-y-1 animate-fade-in shadow-sm">
+                  <div className="flex items-center justify-between font-extrabold text-[11px]">
+                    <span className="flex items-center gap-1">✨ Location Logged</span>
+                    <button onClick={() => setUnsupportedToast(null)} className="text-blue-500 hover:text-blue-700">✕</button>
+                  </div>
+                  <p className="text-[10px] leading-relaxed text-blue-700">{unsupportedToast}</p>
+                </div>
+              )}
+
+              {/* Origin Autocomplete */}
+              <div className="relative">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t.origin}</label>
                 <input
                   type="text"
+                  placeholder="e.g. Delhi, Mumbai, Bengaluru, Kolkata, Chandigarh"
                   value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
+                  onChange={(e) => handleOriginChange(e.target.value)}
                   className="w-full p-2.5 rounded-lg border text-xs focus:ring-2 focus:ring-primary-500 focus:outline-none"
                 />
+                {originSuggestions.length > 0 && (
+                  <div className="absolute z-20 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-52 overflow-y-auto mt-1 divide-y divide-slate-100">
+                    {originSuggestions.map((s, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setOrigin(s.name);
+                          setOriginSuggestions([]);
+                        }}
+                        className="p-2.5 hover:bg-slate-50 cursor-pointer text-xs space-y-0.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-slate-800">{s.name}, {s.state}</span>
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{s.type}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
+              {/* Destination Autocomplete with Spell Correction */}
               <div className="relative">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t.destination}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Nalanda, Jaipur, Munnar, Goa, Bir Billing"
+                  placeholder="e.g. Manali, Hampi, Munnar, Varanasi, Bir Billing, Chopta, Goa"
                   value={destination}
                   onChange={(e) => handleDestinationChange(e.target.value)}
                   className="w-full p-2.5 rounded-lg border text-xs focus:ring-2 focus:ring-primary-500 focus:outline-none"
                 />
-                {suggestions.length > 0 && (
-                  <div className="absolute z-10 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1">
-                    {suggestions.map((s, idx) => (
+
+                {/* Fuzzy Spelling Auto-Correction Suggestion */}
+                {didYouMean && (
+                  <div className="mt-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between text-xs text-amber-900 animate-fade-in shadow-sm">
+                    <span className="text-[11px]">💡 Did you mean <strong className="underline">{didYouMean}</strong>?</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDestination(didYouMean);
+                        setDidYouMean(null);
+                        setDestSuggestions([]);
+                      }}
+                      className="px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-[10px] shadow-sm transition-all"
+                    >
+                      Auto-Correct
+                    </button>
+                  </div>
+                )}
+
+                {/* Autocomplete Dropdown List */}
+                {destSuggestions.length > 0 && (
+                  <div className="absolute z-20 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-1 divide-y divide-slate-100">
+                    {destSuggestions.map((s, idx) => (
                       <div
                         key={idx}
                         onClick={() => {
                           setDestination(s.name);
-                          setSuggestions([]);
+                          setDestSuggestions([]);
+                          setDidYouMean(null);
                         }}
-                        className="p-2.5 hover:bg-slate-100 cursor-pointer text-xs text-slate-700 font-bold border-b border-slate-50 last:border-0"
+                        className="p-2.5 hover:bg-slate-50 cursor-pointer text-xs space-y-0.5 transition-colors"
                       >
-                        {s.name} <span className="text-[9px] font-extrabold text-blue-600 bg-blue-50 px-1 py-0.2 rounded ml-1">{s.data_status}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-slate-800">{s.name} <span className="text-slate-400 font-medium text-[11px]">({s.state})</span></span>
+                          <span className="text-[9px] font-bold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded">{s.type}</span>
+                        </div>
+                        {s.famous_for && (
+                          <p className="text-[10px] text-slate-400 line-clamp-1">{s.famous_for}</p>
+                        )}
                       </div>
                     ))}
                   </div>
