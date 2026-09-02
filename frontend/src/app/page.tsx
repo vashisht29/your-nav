@@ -137,8 +137,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     hotelSelected: "Selected Stay"
   },
   hi: {
-    title: "YourNav (योर नैव)",
-    subtitle: "एजेंटिक यात्रा अनुशंसा और अनुकूलन इंजन",
+    title: "YourNav",
+    subtitle: "Agentic Travel Recommendation & Optimization Engine",
     step: "चरण",
     destination: "गंतव्य स्थान",
     origin: "प्रस्थान का शहर",
