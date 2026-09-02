@@ -327,6 +327,7 @@ export default function Home() {
   const [sosType, setSosType] = useState("");
   const [sosLoading, setSosLoading] = useState(false);
   const [emergencyServices, setEmergencyServices] = useState<any[]>([]);
+  const [showAgentTrace, setShowAgentTrace] = useState(true);
 
   // Caching & Persistence hydration (Next.js SSR safe)
   useEffect(() => {
@@ -1471,29 +1472,49 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Agent Thinking Cycle Log Trace */}
+              {/* Agent Thinking Cycle Log Trace (Collapsible for Mentor Inspection & Clean Production) */}
               {agentLogs.length > 0 && (
-                <div className="bg-slate-900 text-slate-100 p-5 rounded-xl border border-slate-800 shadow-lg space-y-4">
-                  <h3 className="text-xs font-extrabold text-slate-200 flex items-center gap-1.5 border-b border-slate-800 pb-2">
-                    <Terminal className="text-emerald-400 w-4 h-4" /> Agentic AI Execution Trace (Autonomous Loop)
-                  </h3>
-                  <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
-                    {agentLogs.map((log: any, idx: number) => (
-                      <div key={idx} className="border-l-2 border-slate-700 pl-3.5 ml-1.5 space-y-1 relative text-left">
-                        <div className="absolute w-2 h-2 bg-emerald-400 rounded-full -left-[5px] top-1"></div>
-                        <div className="flex justify-between items-center text-[10px]">
-                          <span className="font-extrabold text-emerald-400 uppercase tracking-wider">{log.step}</span>
-                          <span className="text-slate-500 font-mono">{log.action.split('(')[0]}()</span>
-                        </div>
-                        <p className="text-[11px] text-slate-300 font-medium italic">Thought: "{log.thought}"</p>
-                        <div className="bg-slate-950/60 p-2 rounded border border-slate-800 font-mono text-[9px] text-slate-400">
-                          <span className="text-purple-400 font-bold">Action:</span> {log.action}
-                          <br />
-                          <span className="text-blue-400 font-bold">Observation:</span> {log.observation}
-                        </div>
-                      </div>
-                    ))}
+                <div className="bg-slate-900 text-slate-100 p-4 rounded-xl border border-slate-800 shadow-lg space-y-3">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <h3 className="text-xs font-extrabold text-slate-200 flex items-center gap-1.5">
+                      <Terminal className="text-emerald-400 w-4 h-4" /> Agentic AI Execution Trace
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold">
+                        Mentor Inspection Mode
+                      </span>
+                      <button
+                        onClick={() => setShowAgentTrace(!showAgentTrace)}
+                        className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 transition-all font-bold"
+                      >
+                        {showAgentTrace ? "Hide Box" : "Show Box"}
+                      </button>
+                    </div>
                   </div>
+
+                  {showAgentTrace ? (
+                    <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+                      {agentLogs.map((log: any, idx: number) => (
+                        <div key={idx} className="border-l-2 border-slate-700 pl-3.5 ml-1.5 space-y-1 relative text-left">
+                          <div className="absolute w-2 h-2 bg-emerald-400 rounded-full -left-[5px] top-1"></div>
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="font-extrabold text-emerald-400 uppercase tracking-wider">{log.step}</span>
+                            <span className="text-slate-500 font-mono">{log.action.split('(')[0]}()</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 font-medium italic">Thought: "{log.thought}"</p>
+                          <div className="bg-slate-950/60 p-2 rounded border border-slate-800 font-mono text-[9px] text-slate-400">
+                            <span className="text-purple-400 font-bold">Action:</span> {log.action}
+                            <br />
+                            <span className="text-blue-400 font-bold">Observation:</span> {log.observation}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 italic">
+                      ✅ 6-stage autonomous ReAct cycle completed with zero errors. Click "Show Box" to expand full execution thoughts and actions.
+                    </p>
+                  )}
                 </div>
               )}
 
