@@ -2002,11 +2002,50 @@ export default function Home() {
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2">
-                <button onClick={() => setShowPayment(false)} className="flex-1 py-2 border rounded-xl font-bold text-xs text-slate-500">Cancel</button>
-                <button onClick={triggerPayment} className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs">
-                  Authorize ₹{itinerary?.total_cost_inr}
-                </button>
+              <div className="space-y-4 text-xs">
+                {/* Pre-Booked vs On-Trip Breakdown */}
+                <div className="p-3 bg-slate-50 border rounded-xl space-y-2 text-[11px]">
+                  <div className="flex justify-between font-bold text-slate-700">
+                    <span>🏨 Hotel Stay (Confirmed Voucher):</span>
+                    <span>₹{itinerary?.cost_breakdown?.stays || 0}</span>
+                  </div>
+                  {transportMode !== "self-drive" && (
+                    <div className="flex justify-between font-bold text-slate-700">
+                      <span>🎫 Transit Tickets (PNR/E-Ticket):</span>
+                      <span>₹{itinerary?.cost_breakdown?.transport || 0}</span>
+                    </div>
+                  )}
+                  <div className="border-t pt-1.5 flex justify-between font-extrabold text-emerald-700 text-xs">
+                    <span>💳 Total Payable Now:</span>
+                    <span>₹{((itinerary?.cost_breakdown?.stays || 0) + (transportMode !== "self-drive" ? (itinerary?.cost_breakdown?.transport || 0) : 0)).toFixed(0)}</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1 text-[10px] text-amber-900">
+                  <span className="font-extrabold block">🚗 On-Trip Estimated Expenses (Pay on the road):</span>
+                  <div className="flex justify-between text-amber-800">
+                    <span>• Meals & Food Thalis:</span>
+                    <span>₹{itinerary?.cost_breakdown?.food || 0}</span>
+                  </div>
+                  {transportMode === "self-drive" && (
+                    <div className="flex justify-between text-amber-800">
+                      <span>• Fuel & Fastag Tolls:</span>
+                      <span>₹{(itinerary?.cost_breakdown?.transport || 0) + (itinerary?.cost_breakdown?.toll || 0)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-amber-800">
+                    <span>• Monument Entry Tickets:</span>
+                    <span>₹{itinerary?.cost_breakdown?.activities || 0}</span>
+                  </div>
+                  <p className="text-[9px] text-amber-700 italic pt-1">Note: On-trip expenses are NOT charged online and will be paid directly during your journey.</p>
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={() => setShowPayment(false)} className="flex-1 py-2 border rounded-xl font-bold text-xs text-slate-500">Cancel</button>
+                  <button onClick={triggerPayment} className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs">
+                    Pay Now ₹{((itinerary?.cost_breakdown?.stays || 0) + (transportMode !== "self-drive" ? (itinerary?.cost_breakdown?.transport || 0) : 0)).toFixed(0)}
+                  </button>
+                </div>
               </div>
             )}
           </div>

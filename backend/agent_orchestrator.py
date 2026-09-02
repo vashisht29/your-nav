@@ -579,14 +579,17 @@ class AgentOrchestrator:
                 # Run CP-SAT solver
                 delta = (datetime.strptime(state["return_date"], "%Y-%m-%d") - datetime.strptime(state["departure_date"], "%Y-%m-%d")).days
                 
-                # Budget adjustment during backtracking / self-healing
-                adjusted_budget = state["budget"]
-                if state["backtrack_count"] > 0:
-                    adjusted_budget += state["backtrack_count"] * 5000.0
-                    self.log("SELF_HEALING", f"Relaxing solver boundary constraints. Adjusted budget threshold to ₹{adjusted_budget}", "self_heal()", f"Backtrack iteration: {state['backtrack_count']}")
+                # Enforce Hard Budget Constraint strictly
+                hard_budget = state["budget"]
                 
                 fixed_hotel = state["selected_hotel"]
-                if not fixed_hotel and raw_hotels:
+                # In backtracking iterations, try smarter alternative stays within hard budget
+                if state["backtrack_count"] == 1 and raw_hotels and len(raw_hotels) > 1:
+                    # Try best affordable alternative stay
+                    sorted_hotels = sorted(raw_hotels, key=lambda h: h.get("cost_inr", 99999))
+                    fixed_hotel = sorted_hotels[0]
+                    self.log("SELF_HEALING", f"Hard budget ₹{hard_budget} exceeded. Proactively trying optimal stay alternative: '{fixed_hotel['name']}' to stay within budget.", "self_heal()", f"Backtrack iteration: {state['backtrack_count']}")
+                elif not fixed_hotel and raw_hotels:
                     fixed_hotel = raw_hotels[0]
                 fixed_midway = state["selected_midway_hotel"]
                 
@@ -609,7 +612,7 @@ class AgentOrchestrator:
                 attraction_limit = 12 if delta <= 3 else (9 if delta <= 5 else 6)
                 itinerary = solve_itinerary(
                     days=delta,
-                    budget=adjusted_budget,
+                    budget=hard_budget,
                     hotel_candidates=hotel_list,
                     attraction_candidates=state["scored_attractions"][:attraction_limit],
                     restaurant_candidates=raw_restaurants,
