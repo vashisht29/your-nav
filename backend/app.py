@@ -422,6 +422,27 @@ def plan_trip(req: PlanRequest):
     persona_name = itinerary.get("persona", "Balanced Explorer")
     explanation = generate_itinerary_explanation(itinerary, persona_name, lang=req.lang)
 
+    rooms_needed = max(1, (req.travelers + 1) // 2)
+    original_hotel_cost = (req.selected_hotel.cost_inr * delta * rooms_needed) if req.selected_hotel else 0
+    optimized_hotel_cost = itinerary["cost_breakdown"]["stays"]
+    
+    transit_cost = req.selected_transit.total_price_inr if req.selected_transit else 0
+    food_cost = itinerary["cost_breakdown"]["food"]
+    original_total = original_hotel_cost + transit_cost + food_cost
+    
+    optimization_applied = None
+    if req.selected_hotel and (req.selected_hotel.name != fixed_hotel.get("name") or original_total > req.budget):
+        optimization_applied = {
+            "was_conflict": True,
+            "original_stay": req.selected_hotel.name,
+            "original_stay_cost": round(original_hotel_cost, 0),
+            "original_total_cost": round(original_total, 0),
+            "optimized_stay": fixed_hotel.get("name", "Optimized Stay"),
+            "optimized_stay_cost": round(optimized_hotel_cost, 0),
+            "savings": round(max(0, req.budget - itinerary["total_cost_inr"]), 0),
+            "exceeded_by": round(max(0, original_total - req.budget), 0)
+        }
+
     agent_orchestrator.log(
         "Final Validation & Explanation",
         "Generating human-like natural explanation of resolved itinerary via Gemini LLM layer.",
@@ -441,6 +462,7 @@ def plan_trip(req: PlanRequest):
         "days": itinerary["days"],
         "total_cost_inr": itinerary["total_cost_inr"],
         "cost_breakdown": itinerary["cost_breakdown"],
+        "optimization_applied": optimization_applied,
         "explanation": explanation,
         "agent_logs": agent_orchestrator.logs
     }

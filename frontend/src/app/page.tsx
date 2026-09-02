@@ -542,6 +542,12 @@ export default function Home() {
           setInfeasibleAlternatives(data.alternatives || []);
           setItinerary(null);
         } else {
+          if (data.selected_hotel) {
+            setSelectedHotel(data.selected_hotel);
+          }
+          if (data.selected_transit) {
+            setSelectedTransit(data.selected_transit);
+          }
           if (data.cost_breakdown?.allocated_budget && data.cost_breakdown.allocated_budget > budget) {
             setBudget(data.cost_breakdown.allocated_budget);
           }
@@ -1417,6 +1423,37 @@ export default function Home() {
           {itinerary && (
             <div className="space-y-6">
               
+              {/* Agentic AI Proactive Conflict Resolution Banner */}
+              {itinerary.optimization_applied && (
+                <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border-2 border-emerald-300 p-4 rounded-2xl shadow-sm space-y-2.5 text-xs animate-fade-in">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-emerald-600 animate-pulse" />
+                    <h4 className="font-extrabold text-xs text-emerald-950 uppercase tracking-wider">
+                      🤖 Agentic AI Proactive Conflict Resolution Applied
+                    </h4>
+                    <span className="ml-auto text-[10px] bg-emerald-600 text-white font-extrabold px-2.5 py-0.5 rounded-full shadow-sm">
+                      ₹{itinerary.cost_breakdown.remaining_balance} Saved Under Hard Budget
+                    </span>
+                  </div>
+                  <p className="text-slate-700 text-xs leading-relaxed">
+                    Your initial stay choice of <strong className="text-red-700 line-through">{itinerary.optimization_applied.original_stay} (₹{itinerary.optimization_applied.original_stay_cost})</strong> combined with transport & food exceeded your hard budget limit of <strong>₹{budget}</strong> (Total would be ₹{itinerary.optimization_applied.original_total_cost}).
+                  </p>
+                  <div className="p-3 bg-white/90 border border-emerald-200 rounded-xl flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-extrabold text-emerald-800 uppercase block">Proactive AI Substitution:</span>
+                      <span className="font-extrabold text-slate-800 text-xs">🏨 {itinerary.optimization_applied.optimized_stay} (₹{itinerary.optimization_applied.optimized_stay_cost})</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold text-slate-500 block">Final Optimized Price:</span>
+                      <span className="font-extrabold text-emerald-700 text-sm">₹{itinerary.total_cost_inr}</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 italic">
+                    💡 The agent resolved this constraint autonomously by substituting the highest-utility verified stay within your ₹{budget} ceiling, keeping your chosen flight/transit intact.
+                  </p>
+                </div>
+              )}
+
               {/* Cost Header breakdown */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-xl border shadow-sm">
