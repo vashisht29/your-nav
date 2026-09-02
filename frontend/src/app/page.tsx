@@ -49,8 +49,8 @@ const MapComponent = dynamic(() => import("./MapComponent"), {
 // UI Translation Dictionary for consistent localization (English-First by default)
 const TRANSLATIONS: Record<string, Record<string, string>> = {
   en: {
-    title: "Smart AI Travel",
-    subtitle: "Stateful Recommendation & Optimization Engine",
+    title: "YourNav",
+    subtitle: "Agentic Travel Recommendation & Optimization Engine",
     step: "Step",
     destination: "Destination",
     origin: "Origin",
@@ -137,8 +137,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     hotelSelected: "Selected Stay"
   },
   hi: {
-    title: "स्मार्ट AI ट्रेवल",
-    subtitle: "यात्रा अनुकूलन और अनुशंसा इंजन",
+    title: "YourNav (योर नैव)",
+    subtitle: "एजेंटिक यात्रा अनुशंसा और अनुकूलन इंजन",
     step: "चरण",
     destination: "गंतव्य स्थान",
     origin: "प्रस्थान का शहर",

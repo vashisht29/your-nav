@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Smart AI Travel Planner",
+  title: "YourNav - Agentic Travel & Optimization Engine",
   description: "An intelligent, constraint-aware travel planning and execution platform for India",
 };
 
