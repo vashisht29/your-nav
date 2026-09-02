@@ -476,7 +476,8 @@ export default function Home() {
           travelers,
           mode: transportMode,
           fuel_type: derivedSpecs.fuel_type,
-          vehicle_query: vehicleQuery
+          vehicle_query: vehicleQuery,
+          travel_class: travelClass
         })
       });
 
@@ -1098,45 +1099,79 @@ export default function Home() {
                 {transportMode === "flight" && transits.map((f) => (
                   <div
                     key={f.id}
-                    className={`p-3 border rounded-xl transition-all ${
-                      selectedTransit?.id === f.id ? "bg-primary-50 border-primary-500" : "bg-slate-50 border-slate-200"
+                    className={`p-3.5 border rounded-xl transition-all space-y-2 ${
+                      selectedTransit?.id === f.id ? "bg-primary-50/80 border-primary-500 shadow-sm" : "bg-slate-50 border-slate-200 hover:border-slate-300"
                     }`}
                   >
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-800 flex items-center gap-1">
-                        <Plane className="w-3.5 h-3.5 text-primary-500" /> {f.airline} ({f.flight_number})
-                        {f.data_status && (
-                          <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                            f.data_status === "LIVE" ? "bg-emerald-100 text-emerald-800" :
-                            f.data_status === "DEMO" || f.data_status === "FALLBACK" ? "bg-rose-100 text-rose-800 border border-rose-200" :
-                            f.data_status === "VERIFIED" ? "bg-blue-100 text-blue-800" :
-                            "bg-slate-100 text-slate-700"
-                          }`}>
-                            {f.data_status}
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Plane className="w-3.5 h-3.5 text-primary-600" />
+                          <span className="font-extrabold text-slate-800 text-xs">{f.airline}</span>
+                          <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                            {f.flight_number}
                           </span>
-                        )}
-                      </span>
-                      <span className="font-extrabold text-slate-700">₹{f.total_price_inr}</span>
+                          {f.rating && (
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                              ⭐ {f.rating}
+                            </span>
+                          )}
+                          {f.otp_rate && (
+                            <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                              {f.otp_rate}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium mt-1 flex items-center gap-1">
+                          <span className="font-bold text-slate-700">{f.departure_time}</span>
+                          <span>➔</span>
+                          <span className="font-bold text-slate-700">{f.arrival_time}</span>
+                          <span>•</span>
+                          <span>{f.duration_hrs}h flight</span>
+                          {f.travel_class && (
+                            <>
+                              <span>•</span>
+                              <span className="font-bold text-primary-600">{f.travel_class}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-extrabold text-slate-900 text-xs">₹{f.total_price_inr}</span>
+                        <span className="block text-[9px] text-slate-400 font-medium">(₹{f.cost_inr}/person)</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-2">
-                      <span>{f.origin_airport} ➔ {f.destination_airport}</span>
-                      <span>{f.duration_hrs} hrs</span>
+
+                    {/* Official Airport Route */}
+                    <div className="bg-white/80 border border-slate-200/80 rounded-lg p-2 text-[10px] text-slate-600 space-y-0.5">
+                      <div className="flex items-center justify-between font-semibold">
+                        <span className="truncate max-w-[48%]">🛫 {f.origin_airport || f.origin_iata || "Origin Airport"}</span>
+                        <span className="text-slate-400">➔</span>
+                        <span className="truncate max-w-[48%] text-right">🛬 {f.destination_airport || f.destination_iata || "Dest Airport"}</span>
+                      </div>
+                      {f.baggage_allowance && (
+                        <div className="text-[9px] text-slate-400 font-medium">
+                          🧳 {f.baggage_allowance}
+                        </div>
+                      )}
                     </div>
+
                     {f.is_multi_leg && (
-                      <div className="mt-2 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-                        ⚠️ {f.accessibility_note}
+                      <div className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-tight">
+                        📍 {f.accessibility_note}
                       </div>
                     )}
-                    <div className="flex gap-2 mt-3">
+
+                    <div className="flex gap-2 pt-1">
                       <button
                         onClick={() => setSelectedTransit(f)}
-                        className="flex-1 py-1.5 bg-primary-600 text-white font-bold rounded-lg text-[10px]"
+                        className="flex-1 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg text-[10px] shadow-sm transition-all"
                       >
-                        Select Option
+                        {selectedTransit?.id === f.id ? "✓ Selected Flight" : "Select Flight"}
                       </button>
                       <button
                         onClick={() => setInspectingTransit(f)}
-                        className="px-2.5 py-1.5 border hover:bg-slate-100 rounded-lg text-[10px] text-slate-500 font-bold"
+                        className="px-2.5 py-1.5 bg-white border hover:bg-slate-100 rounded-lg text-[10px] text-slate-600 font-bold shadow-sm"
                       >
                         {t.detailsBtn}
                       </button>

@@ -41,6 +41,7 @@ class TransitSearchRequest(BaseModel):
     mode: str
     fuel_type: Optional[str] = "petrol"
     vehicle_query: Optional[str] = ""
+    travel_class: Optional[str] = "economy"
 
 class StaySearchRequest(BaseModel):
     origin: Optional[str] = "Delhi"
@@ -56,6 +57,14 @@ class SelectedTransit(BaseModel):
     id: str
     airline: Optional[str] = None
     flight_number: Optional[str] = None
+    origin_airport: Optional[str] = None
+    origin_iata: Optional[str] = None
+    destination_airport: Optional[str] = None
+    destination_iata: Optional[str] = None
+    rating: Optional[float] = None
+    otp_rate: Optional[str] = None
+    travel_class: Optional[str] = None
+    baggage_allowance: Optional[str] = None
     train_name: Optional[str] = None
     train_number: Optional[str] = None
     operator: Optional[str] = None
@@ -101,7 +110,7 @@ class PlanRequest(BaseModel):
     travel_class: Optional[str] = "economy"
     waypoints: Optional[List[Waypoint]] = []
 
-@app.get("/api/health")
+@app.get("/health")
 def health():
     return {"status": "running"}
 
@@ -109,6 +118,8 @@ def health():
 def get_suggestions(q: str):
     from agent_orchestrator import agent_orchestrator
     return {"suggestions": agent_orchestrator.search_destination(q)}
+
+from flight_engine import generate_live_flights
 
 @app.post("/api/search/transit")
 def get_transits(req: TransitSearchRequest):
@@ -120,6 +131,18 @@ def get_transits(req: TransitSearchRequest):
             raise HTTPException(status_code=400, detail="Return date must be after departure date.")
     except ValueError:
         raise HTTPException(status_code=400, detail="Date format must be YYYY-MM-DD.")
+
+    if req.mode == "flight":
+        flight_candidates = generate_live_flights(
+            origin_name=req.origin,
+            dest_name=req.destination,
+            dep_date=req.departure_date,
+            ret_date=req.return_date,
+            travelers=req.travelers,
+            travel_class=req.travel_class or "economy"
+        )
+        if flight_candidates:
+            return {"transits": flight_candidates}
 
     from agent_orchestrator import agent_orchestrator
     candidates = agent_orchestrator.search_transport(
