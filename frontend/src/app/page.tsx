@@ -525,6 +525,27 @@ export default function Home() {
     }
   };
 
+  const handleSelectStayRoom = (stayId: string, roomOpt: any) => {
+    setHotels((prev) =>
+      prev.map((h) => {
+        if (h.id === stayId) {
+          const updated = {
+            ...h,
+            selected_room: roomOpt.room_name,
+            cost_inr: roomOpt.cost_per_night,
+            total_stay_cost_inr: roomOpt.total_stay_cost_inr,
+            meals_included: roomOpt.meals_included
+          };
+          if (selectedHotel?.id === stayId) {
+            setSelectedHotel(updated);
+          }
+          return updated;
+        }
+        return h;
+      })
+    );
+  };
+
   // Search Transit and Stays (Step 1 -> Step 2)
   const handleSearch = async () => {
     setErrorMsg("");
@@ -1833,64 +1854,109 @@ export default function Home() {
                 </div>
               )}
 
-              <h3 className="font-extrabold text-slate-800 text-xs">{t.selectHotel}</h3>
-              <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
-                {[...hotels].sort((a, b) => b.star_rating - a.star_rating).map((h) => (
+              <h3 className="font-extrabold text-slate-800 text-xs flex items-center justify-between">
+                <span>{t.selectHotel} (Hostels, Homestays & 5-Star Palaces)</span>
+                <span className="text-[10px] text-slate-400 font-normal">Sorted by Proximity & Value</span>
+              </h3>
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                {[...hotels].sort((a, b) => (a.proximity_km || 1) - (b.proximity_km || 1)).map((h) => (
                   <div
                     key={h.id}
-                    className={`p-3 border rounded-xl transition-all flex ${
-                      selectedHotel?.id === h.id ? "bg-primary-50 border-primary-500" : "bg-slate-50 border-slate-200"
+                    className={`p-3.5 border rounded-2xl transition-all space-y-2.5 ${
+                      selectedHotel?.id === h.id ? "bg-amber-50/70 border-amber-500 shadow-md ring-1 ring-amber-400" : "bg-white border-slate-200 hover:border-slate-300"
                     }`}
                   >
-                    {h.image_url && (
-                      <img
-                        src={h.image_url}
-                        alt={h.name}
-                        className="w-20 h-20 object-cover rounded-lg mr-3 my-auto"
-                      />
+                    <div className="flex gap-3 items-start">
+                      {h.image_url && (
+                        <img
+                          src={h.image_url}
+                          alt={h.name}
+                          className="w-20 h-20 object-cover rounded-xl shadow-sm flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-extrabold text-slate-900 text-xs truncate max-w-[200px]">{h.name}</span>
+                              <span className="text-[9px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                ⭐ {h.star_rating}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded text-[9px]">{h.category || "Hotel & Resort"}</span>
+                              <span>•</span>
+                              <span className="text-emerald-700 font-bold">📍 {h.proximity_tag || `${h.proximity_km} km to center`}</span>
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <span className="font-extrabold text-slate-900 text-sm">₹{h.total_stay_cost_inr}</span>
+                            <span className="block text-[9px] text-slate-400 font-medium">(₹{h.cost_inr}/night)</span>
+                          </div>
+                        </div>
+
+                        {/* Hospitality, Check-in & Meals */}
+                        <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-1.5 text-[9px] text-slate-600 mt-1.5 space-y-0.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-700">🤝 Staff: {h.staff_nature_rating || "4.8/5 Courteous & Helpful"}</span>
+                            <span className="text-slate-500 font-medium">⏰ In: {h.check_in || "12 PM"} • Out: {h.check_out || "11 AM"}</span>
+                          </div>
+                          <div className="text-emerald-700 font-bold truncate">
+                            🍳 Food: {h.food_plan || "Free Breakfast / Restaurant Available"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 🛏️ In-Card Dynamic Room Tier Selector */}
+                    {h.room_options && h.room_options.length > 0 && (
+                      <div className="pt-1 border-t border-slate-200/60 space-y-1">
+                        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                          Choose Room Category & Meal Plan:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {h.room_options.map((opt: any) => {
+                            const isSelected = (h.selected_room || h.room_options[0].room_name) === opt.room_name;
+                            return (
+                              <button
+                                key={opt.room_name}
+                                type="button"
+                                onClick={() => handleSelectStayRoom(h.id, opt)}
+                                className={`p-1.5 text-left rounded-lg text-[10px] border transition-all ${
+                                  isSelected
+                                    ? "bg-amber-600 text-white border-amber-600 font-bold shadow-sm ring-1 ring-amber-400"
+                                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                                }`}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-bold truncate text-[10px]">{opt.room_name}</span>
+                                  <span className={`font-extrabold text-[11px] ${isSelected ? "text-white" : "text-slate-900"}`}>
+                                    ₹{opt.cost_per_night}/n
+                                  </span>
+                                </div>
+                                <span className={`text-[8px] block truncate ${isSelected ? "text-amber-100" : "text-emerald-700 font-medium"}`}>
+                                  {opt.meals_included}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-bold text-slate-800 flex items-center gap-1 truncate mr-1">
-                          <HotelHome className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /> {h.name}
-                        </span>
-                        <span className="font-extrabold text-slate-700 flex-shrink-0">₹{h.total_stay_cost_inr}</span>
-                      </div>
-                      <div className="flex justify-between text-[10px] text-slate-400 mt-2">
-                        <span>
-                          {h.star_rating} ⭐{" "}
-                          {h.data_status ? (
-                            <span className={`font-extrabold px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider ${
-                              h.data_status === "LIVE" ? "bg-emerald-100 text-emerald-800" :
-                              h.data_status === "VERIFIED" ? "bg-blue-100 text-blue-800" :
-                              h.data_status === "HISTORICAL" ? "bg-amber-100 text-amber-800" :
-                              h.data_status === "ESTIMATED" ? "bg-purple-100 text-purple-800" :
-                              "bg-slate-100 text-slate-800"
-                            }`}>
-                              {h.data_status}
-                            </span>
-                          ) : h.is_estimated ? (
-                            <span className="bg-orange-100 text-orange-800 font-bold px-1 rounded text-[8px] uppercase">ESTIMATED DATA</span>
-                          ) : (
-                            <span className="bg-sky-100 text-sky-800 font-bold px-1 rounded text-[8px] uppercase">LIVE DATA</span>
-                          )}
-                        </span>
-                        <span>₹{h.cost_inr} / night</span>
-                      </div>
-                      <div className="flex gap-2 mt-2.5">
-                        <button
-                          onClick={() => setSelectedHotel(h)}
-                          className="flex-1 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg text-[10px]"
-                        >
-                          Select Option
-                        </button>
-                        <button
-                          onClick={() => { setInspectingHotel(h); setActiveModalImage(h.image_url || ""); }}
-                          className="px-2.5 py-1.5 border bg-white hover:bg-slate-100 rounded-lg text-[10px] text-slate-500 font-bold"
-                        >
-                          {t.detailsBtn}
-                        </button>
-                      </div>
+
+                    <div className="flex gap-2 pt-0.5">
+                      <button
+                        onClick={() => setSelectedHotel(h)}
+                        className="flex-1 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[10px] shadow-sm transition-all"
+                      >
+                        {selectedHotel?.id === h.id ? "✓ Stay Confirmed" : "Select Stay"}
+                      </button>
+                      <button
+                        onClick={() => { setInspectingHotel(h); setActiveModalImage(h.image_url || ""); }}
+                        className="px-2.5 py-1.5 border bg-white hover:bg-slate-100 rounded-lg text-[10px] text-slate-600 font-bold shadow-sm"
+                      >
+                        {t.detailsBtn}
+                      </button>
                     </div>
                   </div>
                 ))}

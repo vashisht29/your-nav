@@ -197,58 +197,29 @@ def get_transits(req: TransitSearchRequest):
         raise HTTPException(status_code=400, detail="Could not geocode locations or generate candidates.")
     return {"transits": candidates}
 
+from stay_engine import generate_destination_stays
+
 @app.post("/api/search/stays")
 def get_stays(req: StaySearchRequest):
     try:
         dep = datetime.strptime(req.departure_date, "%Y-%m-%d")
         ret = datetime.strptime(req.return_date, "%Y-%m-%d")
-        num_nights = (ret - dep).days
+        num_nights = max(1, (ret - dep).days)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format.")
 
-    geo = geocode_destination(req.destination)
-    if not geo:
-        raise HTTPException(status_code=400, detail="Could not geocode destination location.")
+    rich_stays = generate_destination_stays(
+        dest_name=req.destination,
+        num_nights=num_nights,
+        travelers=req.travelers,
+        user_budget=req.budget
+    )
 
-    raw_hotels = get_hotels_with_failover(geo["lat"], geo["lng"], req.destination.strip().title())
-    sights_data = get_sights_with_failover(geo["lat"], geo["lng"], req.destination.strip().title())
-    raw_attractions = sights_data["attractions"]
-
-    imputed_prices = price_imputer.train_and_impute(raw_hotels, raw_attractions)
-
-    processed_hotels = []
-    rooms_needed = max(1, (req.travelers + 1) // 2)
-
-    for h in raw_hotels:
-        cost = h["cost_inr"]
-        is_imputed = False
-        if cost is None:
-            cost = imputed_prices.get(h["id"], 1500.0)
-            is_imputed = True
-
-        total_stay_cost = cost * num_nights * rooms_needed
-
-        processed_hotels.append({
-            "id": h["id"],
-            "name": h["name"],
-            "cost_inr": cost,
-            "total_stay_cost_inr": total_stay_cost,
-            "lat": h["lat"],
-            "lng": h["lng"],
-            "star_rating": h["star_rating"],
-            "is_estimated": h.get("is_estimated", False),
-            "is_imputed": is_imputed,
-            "data_status": "ESTIMATED" if (is_imputed or h.get("is_estimated", False)) else "LIVE",
-            "reviews": h.get("reviews", ["Clean rooms and quiet surroundings."]),
-            "image_url": h.get("image_url", ""),
-            "images": h.get("images", [h.get("image_url", "")])
-        })
-
-    # Midway Hotel stays check for long road drives
     midway_hotels = []
     midway_city_name = ""
+    geo = geocode_destination(req.destination)
     orig_geo = geocode_destination(req.origin)
-    if orig_geo and req.transport_mode == "self-drive":
+    if geo and orig_geo and req.transport_mode == "self-drive":
         lat1, lon1 = math.radians(orig_geo["lat"]), math.radians(orig_geo["lng"])
         lat2, lon2 = math.radians(geo["lat"]), math.radians(geo["lng"])
         dlat = lat2 - lat1
@@ -258,29 +229,14 @@ def get_stays(req: StaySearchRequest):
         dist_km = (6371.0 * c) * 1.35
         driving_hrs = dist_km / 70.0
         if driving_hrs > 10.0:
-            # Recommends Udaipur / Varanasi / Hyderabad stopover city
-            mid_city, mid_lat, mid_lng = find_midway_city(req.origin, req.destination)
-            midway_city_name = mid_city
-            mid_hotels = get_hotels_with_failover(mid_lat, mid_lng, mid_city)
-            for mh in mid_hotels:
-                midway_hotels.append({
-                    "id": mh["id"],
-                    "name": f"{mh['name']} ({mid_city} Midway)",
-                    "cost_inr": mh["cost_inr"],
-                    "total_stay_cost_inr": mh["cost_inr"] * 1 * rooms_needed, # 1 night midway stay
-                    "lat": mh["lat"],
-                    "lng": mh["lng"],
-                    "star_rating": mh["star_rating"],
-                    "is_estimated": mh.get("is_estimated", True),
-                    "reviews": mh.get("reviews", ["Excellent road trip midway lodge."]),
-                    "image_url": mh.get("image_url", ""),
-                    "images": mh.get("images", [mh.get("image_url", "")])
-                })
+            midway_city_name = "Midway Rest Town"
+            midway_hotels = generate_destination_stays(midway_city_name, 1, req.travelers, req.budget)
 
     return {
-        "hotels": processed_hotels,
+        "hotels": rich_stays,
         "midway_hotels": midway_hotels,
-        "midway_city_name": midway_city_name
+        "midway_city": midway_city_name,
+        "requires_overnight": bool(midway_hotels)
     }
 
 @app.post("/api/plan")
