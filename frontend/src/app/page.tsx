@@ -2546,7 +2546,7 @@ export default function Home() {
       {/* 🚗 Dedicated Onward Ground Transfer & Taxi Bargaining Popup Window */}
       {groundTransferModalTransit && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 relative space-y-4 shadow-2xl">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[88vh] overflow-y-auto p-6 relative space-y-4 shadow-2xl">
             <button
               onClick={() => setGroundTransferModalTransit(null)}
               className="absolute right-4 top-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-all"
@@ -2615,10 +2615,76 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Bargaining guide when selected */}
+                      {/* Detailed Running Services & Timetable when selected */}
                       {isSel && (
-                        <div className="mt-2.5 pt-2 border-t border-amber-200/70 text-[9px] text-amber-950 font-medium space-y-1">
-                          <p>💡 <strong>Bargaining Guide:</strong> {opt.bargaining_tip}</p>
+                        <div className="mt-2.5 pt-2.5 border-t border-amber-200/80 space-y-2.5 text-[10px]">
+                          {/* Live Services List (Trains / Buses / Cabs) */}
+                          {opt.schedule_services && opt.schedule_services.length > 0 && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black text-amber-950 uppercase tracking-wider flex items-center gap-1">
+                                  📋 Available {opt.mode.toUpperCase()} Services & Timetable:
+                                </span>
+                                <span className="text-[9px] font-bold text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full">
+                                  {opt.schedule_services.length} Running Services
+                                </span>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                {opt.schedule_services.map((svc: any, sIdx: number) => {
+                                  const isSvcChosen = (groundTransferModalTransit.selected_ground_service || opt.schedule_services[0].name) === svc.name;
+                                  return (
+                                    <div
+                                      key={sIdx}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setGroundTransferModalTransit({
+                                          ...groundTransferModalTransit,
+                                          selected_ground_service: svc.name,
+                                          selected_ground_transfer: `${opt.title} (${svc.name})`
+                                        });
+                                        if (selectedTransit?.id === groundTransferModalTransit.id) {
+                                          setSelectedTransit({
+                                            ...selectedTransit,
+                                            selected_ground_service: svc.name,
+                                            selected_ground_transfer: `${opt.title} (${svc.name})`
+                                          });
+                                        }
+                                      }}
+                                      className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                                        isSvcChosen
+                                          ? "bg-amber-100/70 border-amber-500 shadow-xs ring-1 ring-amber-400"
+                                          : "bg-white hover:bg-amber-50/50 border-amber-200/60"
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between font-black text-slate-900">
+                                        <span className="text-[10.5px] text-slate-900 flex items-center gap-1">
+                                          {opt.icon} {svc.name}
+                                        </span>
+                                        <span className="text-amber-800 text-[10.5px] font-black bg-amber-50 px-2 py-0.5 rounded border border-amber-200/70">
+                                          {svc.fare}
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between text-[9px] text-slate-600 font-semibold mt-1">
+                                        <span>⏰ {svc.timings}</span>
+                                        <span className="text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded">{svc.capacity}</span>
+                                      </div>
+
+                                      <div className="text-[8.5px] text-slate-600 bg-slate-50/90 p-1.5 rounded-lg font-medium mt-1 border border-slate-200/60">
+                                        📍 <strong>Route & Stops:</strong> {svc.route_stops}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Bargaining & Ground Truth Advice */}
+                          <div className="p-2 bg-amber-100/60 rounded-xl border border-amber-300/80 text-[9px] text-amber-950 font-medium">
+                            💡 <strong>Local Bargaining Guide:</strong> {opt.bargaining_tip}
+                          </div>
                         </div>
                       )}
                     </div>

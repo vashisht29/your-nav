@@ -376,7 +376,12 @@ def get_ground_transfer_intelligence(airport_iata: str, dest_name: str, traveler
                     "pricing_type": "Bargainable / Pre-paid Union",
                     "bargaining_tip": "Terminal Pre-paid Counter is FIXED ₹1,450. Outside gate drivers will take ₹1,100 - ₹1,200 after brief negotiation.",
                     "is_recommended": True,
-                    "availability": "24x7 Outside Arrival Exit"
+                    "availability": "24x7 Outside Arrival Exit",
+                    "schedule_services": [
+                        {"name": "Hatchback (Alto / WagonR)", "timings": "On-Demand (Instant Departure)", "route_stops": "Airport Terminal ➔ Nepali Farm ➔ Haridwar Ganga Ghats", "fare": "₹1,100 - ₹1,300", "capacity": "3-4 Pax • 2 Luggage Bags"},
+                        {"name": "Sedan (Dzire / Etios AC)", "timings": "On-Demand (Instant Departure)", "route_stops": "Airport ➔ Haridwar Hotel Doorstep", "fare": "₹1,400 - ₹1,600", "capacity": "4 Pax • 3 Large Bags"},
+                        {"name": "SUV (Innova / Ertiga)", "timings": "On-Demand (Instant Departure)", "route_stops": "Direct High-Comfort Highway Drive", "fare": "₹2,000 - ₹2,400", "capacity": "6-7 Pax • Family Group"}
+                    ]
                 },
                 {
                     "mode": "bus",
@@ -387,7 +392,12 @@ def get_ground_transfer_intelligence(airport_iata: str, dest_name: str, traveler
                     "pricing_type": "Fixed Government Ticket",
                     "bargaining_tip": "Fixed fare ticket. Buses pass Jolly Grant Chowk on NH-7 every 35 mins towards Haridwar Bus Stand.",
                     "is_recommended": False,
-                    "availability": "06:30 AM - 09:30 PM"
+                    "availability": "06:30 AM - 09:30 PM",
+                    "schedule_services": [
+                        {"name": "UTC Airport Electric Express (Route 7-H)", "timings": "Every 35 mins (06:30 AM - 09:30 PM)", "route_stops": "Jolly Grant Highway Gate ➔ Doiwala ➔ Nepali Farm ➔ Raiwala ➔ Haridwar Bus Stand", "fare": "₹145 / seat", "capacity": "AC Electric Low-Floor Bus"},
+                        {"name": "Garhwal Motor (GMVN) Ordinary Bus", "timings": "Every 45 mins (07:00 AM - 07:00 PM)", "route_stops": "NH-7 Highway Stand ➔ Chandi Ghat ➔ Haridwar City", "fare": "₹110 / seat", "capacity": "Ordinary State Transport"},
+                        {"name": "UTC Hill Deluxe Express", "timings": "09:15 AM, 12:30 PM, 16:00 PM, 18:45 PM", "route_stops": "Express Non-Stop from Nepali Farm Chowk", "fare": "₹165 / seat", "capacity": "2x2 Deluxe Pushback"}
+                    ]
                 },
                 {
                     "mode": "train",
@@ -398,7 +408,13 @@ def get_ground_transfer_intelligence(airport_iata: str, dest_name: str, traveler
                     "pricing_type": "Fixed IRCTC Fare",
                     "bargaining_tip": "Fixed ticket. Take ₹30 auto to Raiwala Junction or direct trains from Dehradun to Haridwar.",
                     "is_recommended": False,
-                    "availability": "Frequent daily schedules"
+                    "availability": "Frequent daily schedules",
+                    "schedule_services": [
+                        {"name": "Dehradun Jan Shatabdi (12056)", "timings": "Dep: 05:42 AM (Raiwala) / 05:00 AM (DDN) ➔ Arr: 06:25 AM (HW)", "route_stops": "Raiwala Jn ➔ Motichur ➔ Haridwar Jn", "fare": "2S: ₹85 • CC: ₹285", "capacity": "Superfast Daily (1h 25m)"},
+                        {"name": "Dehradun Shatabdi Express (12018)", "timings": "Dep: 17:00 PM (DDN) ➔ Arr: 18:15 PM (HW)", "route_stops": "Dehradun Central ➔ Haridwar Jn Direct", "fare": "CC: ₹380 • EC: ₹710", "capacity": "Fastest Premium Express (1h 15m)"},
+                        {"name": "Mussoorie Express (14042)", "timings": "Dep: 21:20 PM (DDN) ➔ Arr: 23:05 PM (HW)", "route_stops": "Doiwala ➔ Raiwala ➔ Motichur ➔ Haridwar", "fare": "SL: ₹140 • 3A: ₹505 • 2S: ₹45", "capacity": "Night Express Service (1h 45m)"},
+                        {"name": "Rishikesh - Haridwar Passenger (54484)", "timings": "Dep: 10:20 AM, 14:15 PM, 18:50 PM", "route_stops": "Raiwala Jn (20 mins from Airport) ➔ Haridwar Jn", "fare": "General Unreserved: ₹30", "capacity": "Local Commuter Train (45 mins)"}
+                    ]
                 }
             ],
             "hotel_last_mile": "From Haridwar Railway / Bus Station to your Ganga Ghat Hotel: E-Rickshaws charge ₹30-50 per seat. Auto-rickshaws charge ₹100-150 (Always bargain!)."
@@ -455,7 +471,12 @@ def get_ground_transfer_intelligence(airport_iata: str, dest_name: str, traveler
                     "pricing_type": "Bargainable / Union Slip",
                     "bargaining_tip": "Airport taxi counter gives fixed union slip for ₹2,650. Outside Gaggal chowk stand, you can negotiate private Alto/Dzire down to ₹2,100 - ₹2,300. Shared Boleros to Baijnath charge ₹250/seat.",
                     "is_recommended": True,
-                    "availability": "24x7 Outside Airport Terminal"
+                    "availability": "24x7 Outside Airport Terminal",
+                    "schedule_services": [
+                        {"name": "Mountain Alto 800 Taxi", "timings": "Instant on arrival", "route_stops": "Airport ➔ Nagrota ➔ Palampur ➔ Bir Colony", "fare": "₹2,100 - ₹2,300", "capacity": "3-4 Pax • Mountain Expert"},
+                        {"name": "Sedan Dzire AC Hill Cab", "timings": "Instant on arrival", "route_stops": "Airport ➔ Direct to Bir Homestay / Campsite", "fare": "₹2,400 - ₹2,700", "capacity": "4 Pax • Paragliding gear space"},
+                        {"name": "Shared Bolero / Cruiser Stand", "timings": "Departs when full (Every 25 mins from Gaggal)", "route_stops": "Gaggal Chowk ➔ Baijnath Stand", "fare": "₹250 / seat", "capacity": "Local Shared Mountain Taxi"}
+                    ]
                 },
                 {
                     "mode": "bus",
@@ -466,7 +487,12 @@ def get_ground_transfer_intelligence(airport_iata: str, dest_name: str, traveler
                     "pricing_type": "Fixed State Transport Ticket",
                     "bargaining_tip": "Fixed fare. Take ₹30 auto from airport to Gaggal Chowk, then board direct HRTC bus to Baijnath/Bir Tibetan Colony.",
                     "is_recommended": False,
-                    "availability": "Hourly departures until 07:00 PM"
+                    "availability": "Hourly departures until 07:00 PM",
+                    "schedule_services": [
+                        {"name": "HRTC Dharamshala - Baijnath Ordinary", "timings": "Every 40 mins (07:00 AM - 07:30 PM)", "route_stops": "Gaggal ➔ Kangra ➔ Nagrota ➔ Maranda ➔ Baijnath", "fare": "₹125 / seat", "capacity": "Ordinary State Bus"},
+                        {"name": "HRTC Himgauri Deluxe", "timings": "11:30 AM & 15:45 PM", "route_stops": "Express stop at Palampur & Bir Road", "fare": "₹185 / seat", "capacity": "2x2 Deluxe Coach"},
+                        {"name": "Local Feeder Shuttle to Bir Colony", "timings": "Every 20 mins from Baijnath", "route_stops": "Baijnath Bus Stand ➔ Bir Tibetan Colony", "fare": "₹25 / seat", "capacity": "Mini Bus / Local Van"}
+                    ]
                 },
                 {
                     "mode": "train",
@@ -477,7 +503,12 @@ def get_ground_transfer_intelligence(airport_iata: str, dest_name: str, traveler
                     "pricing_type": "Fixed Heritage Ticket",
                     "bargaining_tip": "Board at Kangra Mandir station to Ahju (just 3 km from Bir). Incredible pine mountain views over river gorges!",
                     "is_recommended": False,
-                    "availability": "3 Daily Toy Train Services"
+                    "availability": "3 Daily Toy Train Services",
+                    "schedule_services": [
+                        {"name": "Kangra Valley Passenger (52464)", "timings": "Dep: 08:45 AM (Kangra Mandir) ➔ Arr: 12:15 PM (Ahju)", "route_stops": "Kangra ➔ Nagrota Surian ➔ Palampur ➔ Ahju (Bir)", "fare": "General 2S: ₹35", "capacity": "Narrow Gauge Heritage (3h 30m)"},
+                        {"name": "Kangra Valley Express (52468)", "timings": "Dep: 13:10 PM (Kangra Mandir) ➔ Arr: 16:30 PM (Ahju)", "route_stops": "Kangra ➔ Maranda ➔ Baijnath ➔ Ahju (Bir)", "fare": "First Class: ₹145 • 2S: ₹55", "capacity": "Panoramic Mountain Windows"},
+                        {"name": "Ahju to Bir Local Feeder", "timings": "Auto / Shared taxi on train arrival", "route_stops": "Ahju Station ➔ Bir Paragliding Landing Site", "fare": "₹80 - ₹120 per auto", "capacity": "3 km scenic drive"}
+                    ]
                 }
             ],
             "hotel_last_mile": "From Bir Tibetan Colony to Upper Billing launch site: 4x4 Gypsy is fixed at ₹600-800 by Paragliding Association."
