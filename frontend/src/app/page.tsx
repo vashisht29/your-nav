@@ -1973,22 +1973,110 @@ export default function Home() {
                 <CheckCircle className="text-emerald-500 w-4 h-4" /> Active Plan Confirmed
               </h3>
 
-              <div className="p-3 bg-slate-50 border rounded-xl space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-700">{t.transitMode}</span>
-                  <span className="font-bold text-primary-600 uppercase">{transportMode === "self-drive" ? t.carRoute : transportMode}</span>
-                </div>
-                {selectedMidwayHotel && (
-                  <div className="flex justify-between items-center border-t pt-1.5">
-                    <span className="font-bold text-slate-700">Midway Stay</span>
-                    <span className="font-bold text-amber-600 truncate max-w-[150px]">{selectedMidwayHotel.name}</span>
+              {/* Detailed Confirmed Transit Card */}
+              {selectedTransit && (
+                <div
+                  onClick={() => setInspectingTransit(selectedTransit)}
+                  className="p-3.5 bg-white hover:bg-slate-50/90 border border-slate-200 hover:border-primary-400 rounded-2xl transition-all cursor-pointer shadow-sm space-y-2 group"
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-50 text-primary-700 border border-primary-200">
+                          {transportMode === "self-drive" ? "🚗 Self-Drive" : transportMode === "flight" ? "✈️ Flight" : transportMode === "train" ? "🚆 Train" : "🚌 Inter-City Bus"}
+                        </span>
+                        <span className="font-extrabold text-slate-900 text-xs truncate">
+                          {selectedTransit.airline || selectedTransit.train_name || selectedTransit.operator || (transportMode === "self-drive" ? `Highway Route (${selectedTransit.fuel_type || "Petrol"})` : "Transit")}
+                        </span>
+                        {(selectedTransit.flight_number || selectedTransit.train_number || selectedTransit.bus_type) && (
+                          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
+                            {selectedTransit.flight_number || selectedTransit.train_number || selectedTransit.bus_type}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Selected Seat / Class / Berth Highlight */}
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-600 flex-wrap">
+                        <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                          💺 {selectedTransit.travel_class || "Standard Confirmed"}
+                        </span>
+                        <span className="text-slate-400">•</span>
+                        <span className="font-semibold text-slate-700">
+                          {selectedTransit.departure_time} ➔ {selectedTransit.arrival_time}
+                        </span>
+                        {selectedTransit.duration_hrs && (
+                          <>
+                            <span className="text-slate-400">•</span>
+                            <span className="text-slate-500 font-medium">{selectedTransit.duration_hrs}h</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right flex-shrink-0 whitespace-nowrap pl-2">
+                      <span className="font-black text-slate-900 text-sm block">₹{selectedTransit.total_price_inr}</span>
+                      <span className="text-[9px] text-primary-600 font-bold group-hover:underline block mt-0.5">View Details ➔</span>
+                    </div>
                   </div>
-                )}
-                <div className="flex justify-between items-center border-t pt-1.5">
-                  <span className="font-bold text-slate-700">{t.hotelSelected}</span>
-                  <span className="font-bold text-amber-600 truncate max-w-[150px]">{selectedHotel?.name}</span>
                 </div>
-              </div>
+              )}
+
+              {/* Detailed Confirmed Stay Card */}
+              {selectedHotel && (
+                <div
+                  onClick={() => { setInspectingHotel(selectedHotel); setActiveModalImage(selectedHotel.image_url || ""); }}
+                  className="p-3.5 bg-white hover:bg-amber-50/50 border border-slate-200 hover:border-amber-400 rounded-2xl transition-all cursor-pointer shadow-sm space-y-2 group"
+                >
+                  <div className="flex gap-2.5 items-start justify-between">
+                    <div className="flex gap-2.5 items-start min-w-0 flex-1">
+                      {selectedHotel.image_url && (
+                        <img
+                          src={selectedHotel.image_url}
+                          alt={selectedHotel.name}
+                          className="w-14 h-14 object-cover rounded-xl shadow-sm flex-shrink-0"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-extrabold text-slate-900 text-xs truncate">{selectedHotel.name}</span>
+                          <span className="text-[9px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                            ⭐ {selectedHotel.star_rating}
+                          </span>
+                        </div>
+                        
+                        {/* Selected Room & Meal Plan */}
+                        <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-600 flex-wrap">
+                          <span className="font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                            🛏️ {selectedHotel.selected_room || selectedHotel.room_options?.[0]?.room_name || "Confirmed Room"}
+                          </span>
+                        </div>
+                        <div className="text-[9px] text-emerald-700 font-semibold mt-0.5 truncate">
+                          🍳 {selectedHotel.meals_included || "Free Breakfast / Kitchen Access"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right flex-shrink-0 whitespace-nowrap pl-2">
+                      <span className="font-black text-slate-900 text-sm block">₹{selectedHotel.total_stay_cost_inr}</span>
+                      <span className="text-[9px] text-amber-700 font-bold group-hover:underline block mt-0.5">View Details ➔</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Confirmed Midway Stay (if applicable) */}
+              {selectedMidwayHotel && (
+                <div
+                  onClick={() => { setInspectingHotel(selectedMidwayHotel); setActiveModalImage(selectedMidwayHotel.image_url || ""); }}
+                  className="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl transition-all cursor-pointer shadow-sm space-y-1.5"
+                >
+                  <span className="text-[9px] font-bold text-amber-800 uppercase tracking-wider block">🌙 Confirmed Midway Overnight Stay</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-900 text-xs truncate">{selectedMidwayHotel.name}</span>
+                    <span className="font-black text-slate-900 text-xs">₹{selectedMidwayHotel.cost_inr}</span>
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={() => setStep(4)}
