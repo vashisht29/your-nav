@@ -245,20 +245,30 @@ def generate_live_trains(origin_name: str, dest_name: str, dep_date: str, ret_da
         # Duration math
         duration_hrs = round((dist_km / t["speed"]) + (idx * 0.4) + 0.5, 1)
 
-        # Fare calculation
-        base_fare = 140 + (dist_km * t["km_rate"]) + t["catering"] + 75
-        ticket_per_person = round(base_fare, 0)
-        total_fare = ticket_per_person * travelers
+        # Multi-class options for this train
+        class_options = []
+        for c_name in t["classes"]:
+            cls_code = c_name.split()[0]
+            km_rate = {
+                "1A": 3.45, "EC": 2.85, "2A": 2.15, "CC": 1.55, "3A": 1.40, "3E": 1.25, "SL": 0.52
+            }.get(cls_code, 1.40)
+            catering = t["catering"] if cls_code in ["1A", "EC", "2A", "CC", "3A"] else 0
+            opt_cost = round(140 + (dist_km * km_rate) + catering + 75, 0)
+            class_options.append({
+                "class_name": c_name,
+                "class_code": cls_code,
+                "cost_inr": opt_cost,
+                "total_price_inr": opt_cost * travelers,
+                "cancellation_policy": get_train_cancellation_policy(cls_code)
+            })
 
-        # Ground transfer note if destination is a hill station without railhead
-        ground_note = ""
-        is_connecting = False
-        if dest_stn["city"].lower() not in dest_name.lower():
-            is_connecting = True
-            ground_note = f"Arrive at {dest_stn['name']} ({dest_stn['code']}) + scenic road transfer to {dest_name}."
+        default_opt = class_options[0]
+        ticket_per_person = default_opt["cost_inr"]
+        total_fare = default_opt["total_price_inr"]
+        selected_class = default_opt["class_name"]
+        cancellation = default_opt["cancellation_policy"]
 
         promo = get_applicable_promo_code("train", total_fare, travelers)
-        cancellation = get_train_cancellation_policy(t["selected_class"])
 
         candidates.append({
             "id": f"train_{idx}",
@@ -273,8 +283,9 @@ def generate_live_trains(origin_name: str, dest_name: str, dep_date: str, ret_da
             "arrival_time": t["arr"],
             "duration_hrs": duration_hrs,
             "distance_km": dist_km,
-            "travel_class": t["selected_class"],
+            "travel_class": selected_class,
             "available_classes": t["classes"],
+            "class_options": class_options,
             "operating_frequency": t["frequency"],
             "otp_rate": t["otp"],
             "avg_delay": t["avg_delay"],

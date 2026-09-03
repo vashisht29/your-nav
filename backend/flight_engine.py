@@ -401,7 +401,51 @@ def generate_live_flights(origin_name: str, dest_name: str, dep_date: str, ret_d
 
         # Promo Code & Cancellation Policy Slabs
         from railway_engine import get_flight_cancellation_policy, get_applicable_promo_code
-        cancellation = get_flight_cancellation_policy(air["name"], class_name)
+
+        # Airline specific class options
+        airline_class_definitions = {
+            "IndiGo": [
+                {"class_name": "Saver Economy", "mult": 1.0, "baggage": "15 kg Check-in + 7 kg Cabin"},
+                {"class_name": "Flexi Plus", "mult": 1.28, "baggage": "15 kg Check-in + Free Seat + Free Meal"}
+            ],
+            "Vistara": [
+                {"class_name": "Standard Economy", "mult": 1.0, "baggage": "15 kg Check-in + 7 kg Cabin"},
+                {"class_name": "Premium Economy", "mult": 1.55, "baggage": "20 kg Check-in + Extra Legroom + Hot Meals"},
+                {"class_name": "Business / Club", "mult": 2.75, "baggage": "30 kg Check-in + Priority Boarding + Gourmet Dining"}
+            ],
+            "Air India": [
+                {"class_name": "Economy (20kg)", "mult": 1.0, "baggage": "20 kg Check-in + 7 kg Cabin"},
+                {"class_name": "Flexi Economy", "mult": 1.30, "baggage": "25 kg Check-in + Free Date Change"},
+                {"class_name": "Executive Business", "mult": 2.65, "baggage": "35 kg Check-in + Lounge Access + Flat-Bed/Wide Seat"}
+            ],
+            "Akasa Air": [
+                {"class_name": "Saver Economy", "mult": 1.0, "baggage": "15 kg Check-in + 7 kg Cabin"},
+                {"class_name": "Café Akasa Flexi", "mult": 1.25, "baggage": "15 kg Check-in + Complimentary Fresh Meal Box"}
+            ]
+        }
+
+        raw_classes = airline_class_definitions.get(air["name"], [
+            {"class_name": "Standard Economy", "mult": 1.0, "baggage": "15 kg Check-in + 7 kg Cabin"},
+            {"class_name": "Business Class", "mult": 2.5, "baggage": "30 kg Check-in + Lounge Access"}
+        ])
+
+        class_options = []
+        for c_def in raw_classes:
+            opt_cost = round((base_fare * air["brand_mult"] * adv_mult * c_def["mult"]), 0)
+            class_options.append({
+                "class_name": c_def["class_name"],
+                "cost_inr": opt_cost,
+                "total_price_inr": opt_cost * travelers,
+                "baggage_allowance": c_def["baggage"],
+                "cancellation_policy": get_flight_cancellation_policy(air["name"], c_def["class_name"])
+            })
+
+        default_opt = class_options[0]
+        ticket_per_person = default_opt["cost_inr"]
+        total_fare = default_opt["total_price_inr"]
+        class_name = default_opt["class_name"]
+        cancellation = default_opt["cancellation_policy"]
+        baggage = default_opt["baggage_allowance"]
         promo = get_applicable_promo_code("flight", total_fare, travelers)
 
         candidates.append({
@@ -420,9 +464,10 @@ def generate_live_flights(origin_name: str, dest_name: str, dep_date: str, ret_d
             "total_price_inr": total_fare,
             "mode": "flight",
             "travel_class": class_name,
+            "class_options": class_options,
             "rating": air["rating"],
             "otp_rate": air["otp"],
-            "baggage_allowance": "30 kg Check-in + 10 kg Cabin" if travel_class == "business" else "15 kg Check-in + 7 kg Cabin",
+            "baggage_allowance": baggage,
             "is_multi_leg": is_connecting,
             "accessibility_note": ground_transfer_note or f"Direct commercial flight from {orig_hub['iata']} to {dest_hub['iata']}.",
             "cancellation_policy": cancellation,

@@ -472,6 +472,28 @@ export default function Home() {
     }
   };
 
+  const handleSelectTransitClass = (transitId: string, opt: any) => {
+    setTransits((prev) =>
+      prev.map((t) => {
+        if (t.id === transitId) {
+          const updated = {
+            ...t,
+            travel_class: opt.class_name,
+            cost_inr: opt.cost_inr,
+            total_price_inr: opt.total_price_inr,
+            baggage_allowance: opt.baggage_allowance || t.baggage_allowance,
+            cancellation_policy: opt.cancellation_policy || t.cancellation_policy
+          };
+          if (selectedTransit?.id === transitId) {
+            setSelectedTransit(updated);
+          }
+          return updated;
+        }
+        return t;
+      })
+    );
+  };
+
   // Search Transit and Stays (Step 1 -> Step 2)
   const handleSearch = async () => {
     setErrorMsg("");
@@ -1113,56 +1135,18 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 items-end">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t.transitMode}</label>
-                  <select
-                    value={transportMode}
-                    onChange={(e) => setTransportMode(e.target.value)}
-                    className="w-full p-2.5 rounded-lg border text-xs font-bold focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="flight">{lang === "en" ? "Flight" : "हवाई यात्रा"}</option>
-                    <option value="train">{lang === "en" ? "Train" : "ट्रेन"}</option>
-                    <option value="bus">{lang === "en" ? "Bus" : "बस"}</option>
-                    <option value="self-drive">{lang === "en" ? "Car / Driving" : "कार ड्राइविंग"}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    {transportMode === "self-drive" ? "Engine Type" : "Transit Option Class"}
-                  </label>
-                  {transportMode === "self-drive" ? (
-                    <select
-                      key="self-drive-select"
-                      value={derivedSpecs.fuel_type}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "ev_charge_kwh") {
-                          setDerivedSpecs({ model: "Standard EV", fuel_type: "ev_charge_kwh", mileage: 6.0, capacity: 40, source: "Highway EV Averages" });
-                          setVehicleQuery("Standard EV");
-                        } else {
-                          setDerivedSpecs({ model: "Standard Petrol Car", fuel_type: "petrol", mileage: 15.0, capacity: 45, source: "Highway Petrol Averages" });
-                          setVehicleQuery("Standard Petrol Car");
-                        }
-                      }}
-                      className="w-full p-2.5 rounded-lg border text-xs font-bold focus:ring-2 focus:ring-primary-500"
-                    >
-                      <option value="petrol">Petrol / Diesel Car</option>
-                      <option value="ev_charge_kwh">Electric Vehicle (EV)</option>
-                    </select>
-                  ) : (
-                    <select
-                      key="transit-class-select"
-                      value={travelClass}
-                      onChange={(e) => setTravelClass(e.target.value)}
-                      className="w-full p-2.5 rounded-lg border text-xs font-bold focus:ring-2 focus:ring-primary-500"
-                    >
-                      <option value="economy">Standard Economy</option>
-                      <option value="premium">Premium First Class</option>
-                    </select>
-                  )}
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t.transitMode}</label>
+                <select
+                  value={transportMode}
+                  onChange={(e) => setTransportMode(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border text-xs font-bold focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="flight">{lang === "en" ? "✈️ Flight (Air Travel)" : "✈️ हवाई यात्रा (Flight)"}</option>
+                  <option value="train">{lang === "en" ? "🚆 Train (Indian Railways IRCTC)" : "🚆 भारतीय रेलवे (Train)"}</option>
+                  <option value="bus">{lang === "en" ? "🚌 Bus (Volvo / Inter-City)" : "🚌 बस (Bus / Volvo)"}</option>
+                  <option value="self-drive">{lang === "en" ? "🚗 Car / Self-Drive Route" : "🚗 कार ड्राइविंग (Self-Drive)"}</option>
+                </select>
               </div>
 
 
@@ -1251,6 +1235,37 @@ export default function Home() {
                       </div>
                     )}
 
+                    {/* 💺 Dynamic Airline Class Selection Options */}
+                    {f.class_options && f.class_options.length > 0 && (
+                      <div className="pt-1.5 border-t border-slate-200/60 space-y-1">
+                        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                          Choose Class Option (1-Click Price Update):
+                        </span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                          {f.class_options.map((opt: any) => {
+                            const isSelected = f.travel_class === opt.class_name;
+                            return (
+                              <button
+                                key={opt.class_name}
+                                type="button"
+                                onClick={() => handleSelectTransitClass(f.id, opt)}
+                                className={`p-1.5 text-left rounded-lg text-[10px] border transition-all ${
+                                  isSelected
+                                    ? "bg-primary-600 text-white border-primary-600 font-bold shadow-sm ring-1 ring-primary-400"
+                                    : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
+                                }`}
+                              >
+                                <span className="block truncate text-[10px]">{opt.class_name}</span>
+                                <span className={`font-extrabold text-[11px] block ${isSelected ? "text-white" : "text-slate-900"}`}>
+                                  ₹{opt.total_price_inr}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex gap-2 pt-1">
                       <button
                         onClick={() => setSelectedTransit(f)}
@@ -1322,6 +1337,37 @@ export default function Home() {
                     {tr.is_multi_leg && (
                       <div className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-tight">
                         📍 {tr.accessibility_note}
+                      </div>
+                    )}
+
+                    {/* 🚆 Dynamic IRCTC Class Selection Options */}
+                    {tr.class_options && tr.class_options.length > 0 && (
+                      <div className="pt-1.5 border-t border-slate-200/60 space-y-1">
+                        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                          Choose IRCTC Travel Class & Fare:
+                        </span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                          {tr.class_options.map((opt: any) => {
+                            const isSelected = tr.travel_class === opt.class_name;
+                            return (
+                              <button
+                                key={opt.class_name}
+                                type="button"
+                                onClick={() => handleSelectTransitClass(tr.id, opt)}
+                                className={`p-1.5 text-left rounded-lg text-[10px] border transition-all ${
+                                  isSelected
+                                    ? "bg-indigo-600 text-white border-indigo-600 font-bold shadow-sm ring-1 ring-indigo-400"
+                                    : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
+                                }`}
+                              >
+                                <span className="block truncate text-[10px]">{opt.class_name}</span>
+                                <span className={`font-extrabold text-[11px] block ${isSelected ? "text-white" : "text-slate-900"}`}>
+                                  ₹{opt.total_price_inr}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
 
