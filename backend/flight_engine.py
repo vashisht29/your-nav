@@ -448,6 +448,25 @@ def generate_live_flights(origin_name: str, dest_name: str, dep_date: str, ret_d
         baggage = default_opt["baggage_allowance"]
         promo = get_applicable_promo_code("flight", total_fare, travelers)
 
+        # Dual Airport Recommendation Analysis (e.g. Mopa GOX vs Dabolim GOI)
+        dual_airport_advice = None
+        if dest_hub["iata"] == "GOX":
+            dual_airport_advice = {
+                "badge": "✨ Recommended for North Goa",
+                "recommended_for": "North Goa (Anjuna, Baga, Vagator, Morjim, Calangute)",
+                "travel_time": "35 mins to North Beach Strip",
+                "comparison": "35 mins to Baga/Anjuna vs Dabolim (GOI) which is 75 mins away. Saves ~₹1,200 cab fare!",
+                "best_choice": True
+            }
+        elif dest_hub["iata"] == "GOI":
+            dual_airport_advice = {
+                "badge": "🏖️ Best for South Goa",
+                "recommended_for": "South Goa & Heritage (Benaulim, Colva, Palolem, Cavelossim, Panaji)",
+                "travel_time": "25 mins to South Goa Resorts",
+                "comparison": "Direct proximity to South Goa 5-star resorts & Vasco/Panjim.",
+                "best_choice": False
+            }
+
         candidates.append({
             "id": f"flight_{air['prefix'].lower()}_{idx}",
             "airline": air["name"],
@@ -470,6 +489,7 @@ def generate_live_flights(origin_name: str, dest_name: str, dep_date: str, ret_d
             "baggage_allowance": baggage,
             "is_multi_leg": is_connecting,
             "accessibility_note": ground_transfer_note or f"Direct commercial flight from {orig_hub['iata']} to {dest_hub['iata']}.",
+            "dual_airport_advice": dual_airport_advice,
             "cancellation_policy": cancellation,
             "promo_code": promo
         })

@@ -546,6 +546,35 @@ export default function Home() {
     );
   };
 
+  const handleSOS = async (type: string) => {
+    setSosType(type);
+    setSosLoading(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/sos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: 28.6139,
+          lng: 77.2090,
+          type: type
+        })
+      });
+      if (res.status === 200) {
+        const data = await res.json();
+        setEmergencyServices(data.services || []);
+      }
+    } catch (e) {
+      console.error("SOS fetch failed", e);
+    } finally {
+      setSosLoading(false);
+    }
+  };
+
+  const triggerPayment = () => {
+    setPayRef(`PAY_SIM_${Math.floor(100000 + Math.random() * 900000)}`);
+    setPaySuccess(true);
+  };
+
   // Search Transit and Stays (Step 1 -> Step 2)
   const handleSearch = async () => {
     setErrorMsg("");
@@ -1267,16 +1296,17 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Official Airport Route */}
-                    <div className="bg-white/80 border border-slate-200/80 rounded-lg p-2 text-[10px] text-slate-600 space-y-0.5">
+                    {/* Official Airport Route & Best Airport Recommendation */}
+                    <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 text-[10px] text-slate-600 space-y-1">
                       <div className="flex items-center justify-between font-semibold">
-                        <span className="truncate max-w-[48%]">🛫 {f.origin_airport || f.origin_iata || "Origin Airport"}</span>
+                        <span className="truncate max-w-[48%]">🛫 {f.origin_iata || "Origin"} ({f.origin_airport?.split(",")[0]})</span>
                         <span className="text-slate-400">➔</span>
-                        <span className="truncate max-w-[48%] text-right">🛬 {f.destination_airport || f.destination_iata || "Dest Airport"}</span>
+                        <span className="truncate max-w-[48%] text-right font-bold text-slate-800">🛬 {f.destination_iata || "Dest"} ({f.destination_airport?.split(",")[0]})</span>
                       </div>
-                      {f.baggage_allowance && (
-                        <div className="text-[9px] text-slate-400 font-medium">
-                          🧳 {f.baggage_allowance}
+                      {f.dual_airport_advice && (
+                        <div className="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/80 rounded-lg px-2 py-1 flex items-center justify-between">
+                          <span>{f.dual_airport_advice.badge}</span>
+                          <span className="text-slate-500 font-medium">{f.dual_airport_advice.travel_time}</span>
                         </div>
                       )}
                     </div>
@@ -1895,16 +1925,15 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* Hospitality, Check-in & Meals */}
-                        <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-1.5 text-[9px] text-slate-600 mt-1.5 space-y-0.5">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-700">🤝 Staff: {h.staff_nature_rating || "4.8/5 Courteous & Helpful"}</span>
-                            <span className="text-slate-500 font-medium">⏰ In: {h.check_in || "12 PM"} • Out: {h.check_out || "11 AM"}</span>
-                          </div>
-                          <div className="text-emerald-700 font-bold truncate">
-                            🍳 Food: {h.food_plan || "Free Breakfast / Restaurant Available"}
-                          </div>
-                        </div>
+                    {/* Proximity & Food Highlight Bar */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-[10px] flex items-center justify-between text-slate-600">
+                      <span className="text-emerald-700 font-bold truncate max-w-[55%]">
+                        📍 {h.proximity_tag || `${h.proximity_km} km to center`}
+                      </span>
+                      <span className="text-slate-500 font-medium truncate max-w-[42%] text-right">
+                        🍳 {h.meals_included || "Breakfast Available"}
+                      </span>
+                    </div>
                       </div>
                     </div>
 
@@ -2540,10 +2569,30 @@ export default function Home() {
                   </span>
                 </div>
               )}
-              {inspectingTransit.baggage && (
+              {/* 🛫 Dual Airport Proximity Recommendation */}
+              {inspectingTransit.dual_airport_advice && (
+                <div className="p-3 bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-indigo-900 flex items-center gap-1">
+                      🛫 {inspectingTransit.dual_airport_advice.badge}
+                    </span>
+                    <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      {inspectingTransit.dual_airport_advice.travel_time}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-indigo-800 font-medium leading-relaxed">
+                    {inspectingTransit.dual_airport_advice.comparison}
+                  </p>
+                  <div className="text-[10px] text-slate-600 font-semibold pt-1 border-t border-indigo-200/60">
+                    📍 Recommended for: <span className="text-slate-800 font-bold">{inspectingTransit.dual_airport_advice.recommended_for}</span>
+                  </div>
+                </div>
+              )}
+
+              {inspectingTransit.baggage_allowance && (
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t.baggageLabel}</span>
-                  <span className="font-bold text-slate-800">{inspectingTransit.baggage}</span>
+                  <span className="font-bold text-slate-800">{inspectingTransit.baggage_allowance}</span>
                 </div>
               )}
 
@@ -2642,23 +2691,84 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <div className="space-y-3.5 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Hotel Name</span>
-                <span className="font-bold text-slate-800">{inspectingHotel.name}</span>
+            <div className="space-y-3 text-xs max-h-[360px] overflow-y-auto pr-1">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="font-extrabold text-slate-900 text-sm block">{inspectingHotel.name}</span>
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">{inspectingHotel.category || "Hotel & Resort"}</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-extrabold text-amber-600 text-sm block">⭐ {inspectingHotel.star_rating}</span>
+                  <span className="text-[10px] text-slate-400 font-bold">₹{inspectingHotel.cost_inr}/night</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Comfort Class</span>
-                <span className="font-bold text-slate-800">{inspectingHotel.star_rating} ⭐ Star</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Nightly rate (base)</span>
-                <span className="font-bold text-slate-800">₹{inspectingHotel.cost_inr}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Total Stay cost ({t.travelers})</span>
-                <span className="font-bold text-primary-600">₹{inspectingHotel.total_stay_cost_inr}</span>
-              </div>
+
+              {/* 🤝 Staff & Hospitality Profile */}
+              {inspectingHotel.staff_nature_rating && (
+                <div className="p-2.5 bg-amber-50/80 border border-amber-200 rounded-xl space-y-1">
+                  <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block">
+                    🤝 Staff & Hospitality Profile
+                  </span>
+                  <p className="text-[11px] text-slate-700 font-medium">
+                    {inspectingHotel.staff_nature_rating}
+                  </p>
+                </div>
+              )}
+
+              {/* ⏰ Check-In / Check-Out Timings */}
+              {(inspectingHotel.check_in || inspectingHotel.check_out) && (
+                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                  <div className="p-2 bg-slate-50 border rounded-lg">
+                    <span className="text-slate-400 block font-bold">⏰ Check-In:</span>
+                    <span className="font-bold text-slate-800">{inspectingHotel.check_in || "12:00 PM"}</span>
+                  </div>
+                  <div className="p-2 bg-slate-50 border rounded-lg">
+                    <span className="text-slate-400 block font-bold">⏰ Check-Out:</span>
+                    <span className="font-bold text-slate-800">{inspectingHotel.check_out || "11:00 AM"}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 🍳 Food & Dining Inclusions */}
+              {inspectingHotel.food_plan && (
+                <div className="p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-1">
+                  <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">
+                    🍳 Food & Dining Inclusions
+                  </span>
+                  <p className="text-[11px] text-emerald-950 font-medium">
+                    {inspectingHotel.food_plan}
+                  </p>
+                </div>
+              )}
+
+              {/* 📍 Proximity Details */}
+              {inspectingHotel.proximity_tag && (
+                <div className="p-2 bg-slate-50 border rounded-lg text-[10px] flex items-center justify-between">
+                  <span className="font-bold text-slate-600">📍 Proximity:</span>
+                  <span className="font-bold text-emerald-700">{inspectingHotel.proximity_tag}</span>
+                </div>
+              )}
+
+              {/* 🛏️ Available Room Categories & Meals */}
+              {inspectingHotel.room_options && inspectingHotel.room_options.length > 0 && (
+                <div className="border-t pt-2 space-y-1.5">
+                  <span className="text-[10px] text-slate-400 font-extrabold block uppercase">Room Categories & Meal Plans</span>
+                  <div className="space-y-1.5">
+                    {inspectingHotel.room_options.map((ro: any, roIdx: number) => (
+                      <div key={roIdx} className="p-2 bg-slate-50 border rounded-lg flex justify-between items-center text-[10px]">
+                        <div>
+                          <span className="font-bold text-slate-800 block">{ro.room_name}</span>
+                          <span className="text-[9px] text-emerald-700 font-medium">{ro.meals_included}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-extrabold text-slate-900 block">₹{ro.cost_per_night}/night</span>
+                          <span className="text-[8px] text-slate-400">(Total: ₹{ro.total_stay_cost_inr})</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="border-t pt-2">
                 <span className="text-[10px] text-slate-400 font-extrabold block uppercase mb-1">Amenities Included</span>
                 <div className="flex flex-wrap gap-1">
