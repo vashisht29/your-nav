@@ -252,6 +252,9 @@ export default function Home() {
   const [vibeData, setVibeData] = useState<any>(null);
   const [selectedSubRegion, setSelectedSubRegion] = useState<any>(null);
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [carTab, setCarTab] = useState<"dhabas" | "fuel" | "mechanics" | "route">("dhabas");
+  const [activeFuelType, setActiveFuelType] = useState<string>("petrol");
+  const [useAlternateRoute, setUseAlternateRoute] = useState<boolean>(false);
   const [agentLogs, setAgentLogs] = useState<any[]>([]);
 
   const handleOriginChange = async (val: string) => {
@@ -492,6 +495,34 @@ export default function Home() {
         return t;
       })
     );
+  };
+
+  const handleSwitchFuelType = async (fuel: string) => {
+    setActiveFuelType(fuel);
+    try {
+      const res = await fetch("http://localhost:8000/api/search/transit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          origin,
+          destination,
+          departure_date: depDate,
+          return_date: retDate,
+          travelers,
+          mode: "self-drive",
+          fuel_type: fuel
+        })
+      });
+      if (res.status === 200) {
+        const data = await res.json();
+        if (data.transits && data.transits.length > 0) {
+          setTransits(data.transits);
+          setSelectedTransit(data.transits[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to switch fuel type", err);
+    }
   };
 
   // Search Transit and Stays (Step 1 -> Step 2)
@@ -1523,46 +1554,225 @@ export default function Home() {
                   </div>
                 ))}
 
-                {/* 4. Car / Self-Drive Route */}
+                {/* 4. Car / Self-Drive Highway Intelligence Hub */}
                 {transportMode === "self-drive" && transits.map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => setSelectedTransit(c)}
-                    className={`p-4 border rounded-xl cursor-pointer transition-all ${
-                      selectedTransit?.id === c.id ? "bg-primary-50 border-primary-500" : "bg-slate-50 border-slate-200"
+                    className={`p-4 border rounded-2xl transition-all space-y-3 ${
+                      selectedTransit?.id === c.id ? "bg-amber-50/70 border-amber-500 shadow-md ring-1 ring-amber-400" : "bg-white border-slate-200"
                     }`}
                   >
-                    <div className="flex items-center gap-2 border-b pb-2 mb-2">
-                      <Car className="text-primary-500 w-5 h-5" />
-                      <h4 className="font-extrabold text-slate-800 text-xs">{t.carDetails}</h4>
-                    </div>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">{t.drivingDistance}</span>
-                        <span className="font-bold text-slate-800">{c.driving_distance_km} km</span>
+                    {/* Header: Route Name & Mileage Breakdown */}
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Car className="w-4 h-4 text-amber-600" />
+                          <span className="font-extrabold text-slate-800 text-xs">
+                            {useAlternateRoute ? c.alternate_route_name : c.route_name}
+                          </span>
+                          <span className="text-[9px] font-extrabold text-emerald-800 bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded">
+                            Verified Safe Corridor
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium mt-1 flex items-center gap-1.5">
+                          <span>{c.distance_km} km</span>
+                          <span>•</span>
+                          <span>~{c.duration_hrs}h driving</span>
+                          <span>•</span>
+                          <span className="font-bold text-amber-700">{c.fuel_consumption}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Duration</span>
-                        <span className="font-bold text-slate-800">{c.duration_hrs} hrs</span>
+                      <div className="text-right">
+                        <span className="font-extrabold text-slate-900 text-sm">₹{c.total_price_inr}</span>
+                        <span className="block text-[9px] text-slate-400 font-medium">
+                          (Fuel: ₹{c.fuel_cost_inr} + Toll: ₹{c.toll_cost_inr})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* ⛽ Fuel / Engine Type Switcher Buttons */}
+                    <div className="pt-2 border-t border-slate-200/60 space-y-1.5">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="font-extrabold text-slate-500 uppercase tracking-wider">Select Engine & Fuel Type:</span>
+                        <span className="font-bold text-amber-800">{c.fuel_rate_applied}</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { id: "petrol", label: "⛽ Petrol", badge: "Standard" },
+                          { id: "diesel", label: "🛢️ Diesel", badge: "SUV Turbo" },
+                          { id: "cng", label: "💨 Green CNG", badge: "Max Mileage" },
+                          { id: "ev", label: "⚡ EV Fast", badge: "60kW Fast" }
+                        ].map((eng) => {
+                          const isSel = activeFuelType.toLowerCase() === eng.id;
+                          return (
+                            <button
+                              key={eng.id}
+                              type="button"
+                              onClick={() => handleSwitchFuelType(eng.id)}
+                              className={`p-1.5 text-center rounded-lg text-[10px] border transition-all ${
+                                isSel
+                                  ? "bg-amber-600 text-white border-amber-600 font-bold shadow-sm ring-1 ring-amber-400"
+                                  : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200"
+                              }`}
+                            >
+                              <span className="block font-bold truncate">{eng.label}</span>
+                              <span className={`text-[8px] block ${isSel ? "text-amber-100" : "text-slate-400"}`}>{eng.badge}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* ⚠️ Proactive AI Fuel Scarcity Drought Warning */}
+                    {c.fuel_drought_alert && (
+                      <div className="p-2.5 bg-rose-50 border border-rose-300 rounded-xl space-y-1 text-rose-900 animate-pulse">
+                        <div className="flex items-center gap-1.5 font-extrabold text-[11px] text-rose-700">
+                          <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                          <span>AI Fuel Scarcity Alert: {c.fuel_drought_alert.last_pump}</span>
+                        </div>
+                        <p className="text-[10px] leading-tight text-rose-800 font-medium">
+                          {c.fuel_drought_alert.warning}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 🎛️ Interactive Highway Waypoint Tabs (Dhabas, Fuel/EV, Mechanics, Route) */}
+                    <div className="space-y-2 border-t pt-2">
+                      <div className="flex border-b border-slate-200 text-[10px] font-extrabold">
+                        <button
+                          type="button"
+                          onClick={() => setCarTab("dhabas")}
+                          className={`pb-1.5 px-2 border-b-2 transition-all ${
+                            carTab === "dhabas" ? "border-amber-600 text-amber-700 font-black" : "border-transparent text-slate-400 hover:text-slate-600"
+                          }`}
+                        >
+                          🍲 Highway Dhabas ({c.highway_dhabas?.length || 0})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCarTab("fuel")}
+                          className={`pb-1.5 px-2 border-b-2 transition-all ${
+                            carTab === "fuel" ? "border-amber-600 text-amber-700 font-black" : "border-transparent text-slate-400 hover:text-slate-600"
+                          }`}
+                        >
+                          ⛽ Pumps & EV ({c.fuel_stations?.length || 0})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCarTab("mechanics")}
+                          className={`pb-1.5 px-2 border-b-2 transition-all ${
+                            carTab === "mechanics" ? "border-amber-600 text-amber-700 font-black" : "border-transparent text-slate-400 hover:text-slate-600"
+                          }`}
+                        >
+                          🔧 24x7 Mechanics & SOS
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCarTab("route")}
+                          className={`pb-1.5 px-2 border-b-2 transition-all ${
+                            carTab === "route" ? "border-amber-600 text-amber-700 font-black" : "border-transparent text-slate-400 hover:text-slate-600"
+                          }`}
+                        >
+                          🛣️ Safe Reroute
+                        </button>
                       </div>
 
-                      {c.overnight_stay_required && (
-                        <div className="p-2 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold rounded-lg flex items-center gap-1.5 mt-2">
-                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span>Overnight stop recommended in midway town.</span>
+                      {/* Tab 1: Dhabas & Restaurants */}
+                      {carTab === "dhabas" && (
+                        <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                          {c.highway_dhabas?.slice(0, 4).map((dh: any, dIdx: number) => (
+                            <div key={dIdx} className="p-2 bg-white border border-slate-200 rounded-xl space-y-0.5 text-[10px]">
+                              <div className="flex justify-between items-center">
+                                <span className="font-extrabold text-slate-800">{dh.name}</span>
+                                <span className="text-amber-600 font-bold bg-amber-50 px-1.5 py-0.2 rounded">⭐ {dh.rating}</span>
+                              </div>
+                              <p className="text-slate-500 line-clamp-1">{dh.specialty}</p>
+                              <div className="flex justify-between items-center text-[9px] text-slate-400 pt-0.5 border-t">
+                                <span>📍 {dh.km_marker}</span>
+                                <span className="font-bold text-emerald-700 bg-emerald-50 px-1 rounded">✨ {dh.hygiene_score}</span>
+                                <span className="font-bold text-slate-700">₹{dh.price_for_two} for 2</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
 
-                      <div className="pt-2">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setSelectedTransit(c); setShowRouteFactors(true); }}
-                          className="w-full py-1.5 border bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-[10px] font-extrabold flex items-center justify-center gap-1 shadow-sm"
-                        >
-                          <Info className="w-3.5 h-3.5 text-primary-500" />
-                          {t.viewFactorsBtn}
-                        </button>
-                      </div>
+                      {/* Tab 2: Fuel & EV Stations */}
+                      {carTab === "fuel" && (
+                        <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                          {c.fuel_stations?.map((st: any, sIdx: number) => (
+                            <div key={sIdx} className="p-2 bg-white border border-slate-200 rounded-xl space-y-0.5 text-[10px]">
+                              <div className="flex justify-between items-center">
+                                <span className="font-extrabold text-slate-800">{st.name}</span>
+                                <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{st.type}</span>
+                              </div>
+                              <p className="text-slate-500 text-[9px]">{st.location} • {st.features}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tab 3: 24x7 Mechanics & SOS */}
+                      {carTab === "mechanics" && (
+                        <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                          {c.mechanics?.map((m: any, mIdx: number) => (
+                            <div key={mIdx} className="p-2 bg-rose-50/50 border border-rose-200 rounded-xl space-y-1 text-[10px]">
+                              <div className="flex justify-between items-center">
+                                <span className="font-extrabold text-slate-800">{m.garage_name}</span>
+                                <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">24x7 SOS</span>
+                              </div>
+                              <p className="text-slate-500 text-[9px]">{m.location} • {m.specialty}</p>
+                              <div className="flex justify-between items-center pt-1 border-t border-rose-200/60">
+                                <span className="font-bold text-rose-800">{m.phone}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowSOS(true)}
+                                  className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded font-bold text-[9px] shadow-sm"
+                                >
+                                  🚨 Trigger SOS
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tab 4: Safe Alternate Reroute */}
+                      {carTab === "route" && (
+                        <div className="p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2 text-[10px] text-indigo-950">
+                          <div className="space-y-1">
+                            <span className="font-extrabold block text-xs">🛣️ AI Dynamic Highway Rerouting</span>
+                            <p className="text-slate-600">
+                              Agar raste me heavy fog, landslide ya highway toll congestion milta hai, AI turant alternate bypass switch kar deta hai:
+                            </p>
+                          </div>
+                          <div className="p-2 bg-white border rounded-lg space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-700">Alternate Corridor:</span>
+                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Landslide/Traffic Safe</span>
+                            </div>
+                            <p className="text-[10px] text-slate-600">{c.alternate_route_name}</p>
+                            <button
+                              type="button"
+                              onClick={() => setUseAlternateRoute(!useAlternateRoute)}
+                              className={`w-full py-1 text-[10px] font-bold rounded-lg border transition-all mt-1 ${
+                                useAlternateRoute ? "bg-emerald-600 text-white border-emerald-600" : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {useAlternateRoute ? "✓ Using Alternate Safe Bypass" : "Switch to Safe Alternate Bypass"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        onClick={() => setSelectedTransit(c)}
+                        className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all"
+                      >
+                        {selectedTransit?.id === c.id ? "✓ Driving Route Confirmed" : "Select Driving Route"}
+                      </button>
                     </div>
                   </div>
                 ))}
