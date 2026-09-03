@@ -2671,6 +2671,12 @@ export default function Home() {
                                         <span className="text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded">{svc.capacity}</span>
                                       </div>
 
+                                      {svc.operator && (
+                                        <div className="text-[8px] font-bold text-amber-900 bg-amber-100/80 border border-amber-300/70 px-1.5 py-0.5 rounded w-fit mt-1">
+                                          🏛️ {svc.operator}
+                                        </div>
+                                      )}
+
                                       <div className="text-[8.5px] text-slate-600 bg-slate-50/90 p-1.5 rounded-lg font-medium mt-1 border border-slate-200/60">
                                         📍 <strong>Route & Stops:</strong> {svc.route_stops}
                                       </div>
