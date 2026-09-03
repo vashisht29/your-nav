@@ -1822,34 +1822,34 @@ export default function Home() {
                       selectedHotel?.id === h.id ? "bg-amber-50/70 border-amber-500 shadow-md ring-1 ring-amber-400" : "bg-white border-slate-200 hover:border-slate-300"
                     }`}
                   >
-                    <div className="flex gap-3 items-start">
-                      {h.image_url && (
-                        <img
-                          src={h.image_url}
-                          alt={h.name}
-                          className="w-20 h-20 object-cover rounded-xl shadow-sm flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-extrabold text-slate-900 text-xs truncate max-w-[200px]">{h.name}</span>
-                              <span className="text-[9px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-                                ⭐ {h.star_rating}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded text-[9px]">{h.category || "Hotel & Resort"}</span>
-                              <span>•</span>
-                              <span className="text-emerald-700 font-bold">📍 {h.proximity_tag || `${h.proximity_km} km to center`}</span>
-                            </div>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <span className="font-extrabold text-slate-900 text-sm">₹{h.total_stay_cost_inr}</span>
-                            <span className="block text-[9px] text-slate-400 font-medium">(₹{h.cost_inr}/night)</span>
+                    {/* Top Row: Image + Name + Category + Price */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex gap-2.5 items-start min-w-0 flex-1">
+                        {h.image_url && (
+                          <img
+                            src={h.image_url}
+                            alt={h.name}
+                            className="w-14 h-14 object-cover rounded-xl shadow-sm flex-shrink-0"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-extrabold text-slate-900 text-xs truncate leading-snug">{h.name}</h4>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <span className="text-[9px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                              ⭐ {h.star_rating}
+                            </span>
+                            <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded text-[9px] truncate max-w-[150px]">
+                              {h.category || "Hotel & Resort"}
+                            </span>
                           </div>
                         </div>
+                      </div>
+
+                      <div className="text-right flex-shrink-0 whitespace-nowrap pl-2">
+                        <span className="font-black text-slate-900 text-sm block">₹{h.total_stay_cost_inr}</span>
+                        <span className="block text-[9px] text-slate-400 font-medium">(₹{h.cost_inr}/night)</span>
+                      </div>
+                    </div>
 
                     {/* Proximity & Food Highlight Bar */}
                     <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-[10px] flex items-center justify-between text-slate-600">
@@ -1859,8 +1859,6 @@ export default function Home() {
                       <span className="text-slate-500 font-medium truncate max-w-[42%] text-right">
                         🍳 {h.meals_included || "Breakfast Available"}
                       </span>
-                    </div>
-                      </div>
                     </div>
 
                     {/* Clean Selected Room Category Pill */}
@@ -2193,13 +2191,7 @@ export default function Home() {
                           </span>
                         </div>
                       )}
-                      <button
-                        disabled={delayLoading}
-                        onClick={handleSimulateDelay}
-                        className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 text-[10px] font-bold rounded-lg border border-red-200 flex items-center gap-1 transition-all disabled:opacity-50 flex-shrink-0"
-                      >
-                        {delayLoading ? "Simulating..." : "⚠️ Simulate 3-Hour Flight Delay"}
-                      </button>
+
                     </div>
                   </div>
                   <div className="space-y-2">
