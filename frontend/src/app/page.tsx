@@ -525,6 +525,25 @@ export default function Home() {
     }
   };
 
+  const handleSelectGroundTransfer = (transitId: string, groundOpt: any) => {
+    setTransits((prev) =>
+      prev.map((t) => {
+        if (t.id === transitId) {
+          const updated = {
+            ...t,
+            selected_ground_transfer: groundOpt.title,
+            selected_ground_option: groundOpt
+          };
+          if (selectedTransit?.id === transitId) {
+            setSelectedTransit(updated);
+          }
+          return updated;
+        }
+        return t;
+      })
+    );
+  };
+
   const handleSelectStayRoom = (stayId: string, roomOpt: any) => {
     setHotels((prev) =>
       prev.map((h) => {
@@ -1311,9 +1330,83 @@ export default function Home() {
                       )}
                     </div>
 
-                    {f.is_multi_leg && (
-                      <div className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-tight">
-                        📍 {f.accessibility_note}
+                    {/* 🚗 Onward Ground Transfer & Taxi Bargaining Hub */}
+                    {f.ground_transfer_intelligence && f.ground_transfer_intelligence.has_ground_transfer && (
+                      <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-2.5 space-y-2 text-[10px]">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-amber-900 flex items-center gap-1">
+                            🚗 Onward Ground Transfer (Landing at {f.destination_iata})
+                          </span>
+                          <span className="text-[9px] font-bold text-amber-700 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full">
+                            {f.ground_transfer_intelligence.distance_km} km to {destination}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-amber-900/80 font-medium">
+                          {f.ground_transfer_intelligence.summary}
+                        </p>
+
+                        {/* 1-Click Select Onward Transfer Option */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-0.5">
+                          {f.ground_transfer_intelligence.options.map((opt: any, optIdx: number) => {
+                            const isSel = (f.selected_ground_transfer || f.ground_transfer_intelligence.options[0].title) === opt.title;
+                            return (
+                              <button
+                                key={optIdx}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSelectGroundTransfer(f.id, opt);
+                                }}
+                                className={`p-2 rounded-xl border text-left transition-all ${
+                                  isSel
+                                    ? "bg-amber-600 text-white border-amber-600 font-bold shadow-sm ring-2 ring-amber-300"
+                                    : "bg-white hover:bg-amber-50/80 text-slate-700 border-amber-200/80"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm">{opt.icon}</span>
+                                  <span className={`text-[8px] font-extrabold px-1.5 py-0.2 rounded uppercase ${
+                                    isSel ? "bg-amber-700 text-amber-100" : "bg-slate-100 text-slate-500"
+                                  }`}>
+                                    {opt.mode}
+                                  </span>
+                                </div>
+                                <span className="font-bold text-[10px] block truncate mt-1">{opt.title.split("/")[0]}</span>
+                                <span className={`text-[10px] font-black block ${isSel ? "text-white" : "text-amber-950"}`}>
+                                  {opt.estimated_fare_range}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Active Onward Option Insights: Bargaining & Timing */}
+                        {(() => {
+                          const activeOpt = f.ground_transfer_intelligence.options.find(
+                            (o: any) => o.title === (f.selected_ground_transfer || f.ground_transfer_intelligence.options[0].title)
+                          ) || f.ground_transfer_intelligence.options[0];
+                          return (
+                            <div className="p-2.5 bg-white/95 border border-amber-200/80 rounded-xl space-y-1 text-[9px] shadow-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-slate-800">⏱️ Est. Travel Time: {activeOpt.duration}</span>
+                                <span className={`font-extrabold px-2 py-0.5 rounded text-[8px] ${
+                                  activeOpt.pricing_type.includes("Bargain") ? "bg-orange-100 text-orange-800 border border-orange-200" : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                }`}>
+                                  {activeOpt.pricing_type}
+                                </span>
+                              </div>
+                              <p className="text-slate-600 font-medium leading-relaxed">
+                                💡 <strong>Bargaining Guide:</strong> {activeOpt.bargaining_tip}
+                              </p>
+                              <div className="flex justify-between items-center text-[8px] text-slate-400 pt-0.5 border-t border-slate-100">
+                                <span>📍 {f.ground_transfer_intelligence.hotel_last_mile}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        <span className="text-[8px] text-amber-700 font-medium italic block text-right">
+                          * Ground transfer fare is paid directly during travel; not included in flight ticket.
+                        </span>
                       </div>
                     )}
 
@@ -2011,6 +2104,15 @@ export default function Home() {
                           </>
                         )}
                       </div>
+
+                      {/* Confirmed Onward Transfer (if flight landing at nearby hub) */}
+                      {selectedTransit.ground_transfer_intelligence && selectedTransit.ground_transfer_intelligence.has_ground_transfer && (
+                        <div className="mt-1 flex items-center gap-1 text-[9px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                          <span>🚗 <strong>Onward Transfer:</strong> {selectedTransit.selected_ground_transfer || selectedTransit.ground_transfer_intelligence.options[0].title}</span>
+                          <span className="text-slate-400">•</span>
+                          <span>({selectedTransit.ground_transfer_intelligence.distance_km} km to {destination})</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-right flex-shrink-0 whitespace-nowrap pl-2">
@@ -2672,6 +2774,47 @@ export default function Home() {
                     <p className="text-[10px] text-slate-500">{inspectingTransit.promo_code.description}</p>
                   </div>
                   <span className="text-sm font-black text-amber-600">-₹{inspectingTransit.promo_code.discount_inr}</span>
+                </div>
+              )}
+
+              {/* 🛣️ Onward Ground Transfer & Taxi Bargaining Guide in Modal */}
+              {inspectingTransit.ground_transfer_intelligence && (
+                <div className="border-t pt-2.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-amber-900 font-extrabold uppercase tracking-wider flex items-center gap-1">
+                      🛣️ Onward Ground Transfer & Taxi Bargaining Guide
+                    </span>
+                    <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                      {inspectingTransit.ground_transfer_intelligence.distance_km} km to destination
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-600 font-medium">
+                    {inspectingTransit.ground_transfer_intelligence.summary}
+                  </p>
+                  <div className="space-y-1.5">
+                    {inspectingTransit.ground_transfer_intelligence.options.map((gOpt: any, gIdx: number) => (
+                      <div key={gIdx} className="p-2 bg-slate-50 border rounded-xl space-y-1 text-[10px]">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-slate-800 flex items-center gap-1">
+                            {gOpt.icon} {gOpt.title}
+                          </span>
+                          <span className="font-extrabold text-slate-900">{gOpt.estimated_fare_range}</span>
+                        </div>
+                        <div className="flex justify-between text-[9px] text-slate-500">
+                          <span>⏱️ {gOpt.duration} • {gOpt.availability}</span>
+                          <span className={`font-bold px-1.5 py-0.2 rounded ${gOpt.pricing_type.includes("Bargain") ? "bg-orange-100 text-orange-800" : "bg-emerald-100 text-emerald-800"}`}>
+                            {gOpt.pricing_type}
+                          </span>
+                        </div>
+                        <p className="text-[9px] text-slate-600 bg-white p-1.5 rounded border border-slate-100">
+                          💡 <strong>Bargaining Tip:</strong> {gOpt.bargaining_tip}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-2 bg-emerald-50/70 border border-emerald-200 rounded-xl text-[9px] text-emerald-900">
+                    <strong>🏨 Hotel Last-Mile Tip:</strong> {inspectingTransit.ground_transfer_intelligence.hotel_last_mile}
+                  </div>
                 </div>
               )}
 

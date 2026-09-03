@@ -356,6 +356,314 @@ def calculate_geo_distance_km(lat1, lon1, lat2, lon2) -> float:
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return max(150.0, round(R * c, 1))
 
+def get_ground_transfer_intelligence(airport_iata: str, dest_name: str, travelers: int = 1) -> dict:
+    dest_lower = dest_name.lower().strip()
+    
+    # 1. Haridwar
+    if "haridwar" in dest_lower:
+        return {
+            "has_ground_transfer": True,
+            "hub_airport": "Jolly Grant Airport, Dehradun (DED)",
+            "distance_km": 41,
+            "summary": "Flight lands at Dehradun Jolly Grant (DED) • 41 km from Haridwar. Choose your onward ground transfer:",
+            "options": [
+                {
+                    "mode": "cab",
+                    "title": "Local Taxi / Pre-paid Cab",
+                    "icon": "🚕",
+                    "estimated_fare_range": "₹1,200 - ₹1,500",
+                    "duration": "1 hr 15 mins",
+                    "pricing_type": "Bargainable / Pre-paid Union",
+                    "bargaining_tip": "Terminal Pre-paid Counter is FIXED ₹1,450. Outside gate drivers will take ₹1,100 - ₹1,200 after brief negotiation.",
+                    "is_recommended": True,
+                    "availability": "24x7 Outside Arrival Exit"
+                },
+                {
+                    "mode": "bus",
+                    "title": "UTC Electric AC Shuttle Bus",
+                    "icon": "🚌",
+                    "estimated_fare_range": "₹120 - ₹180 / person",
+                    "duration": "1 hr 45 mins",
+                    "pricing_type": "Fixed Government Ticket",
+                    "bargaining_tip": "Fixed fare ticket. Buses pass Jolly Grant Chowk on NH-7 every 35 mins towards Haridwar Bus Stand.",
+                    "is_recommended": False,
+                    "availability": "06:30 AM - 09:30 PM"
+                },
+                {
+                    "mode": "train",
+                    "title": "Connecting Local / Passenger Train",
+                    "icon": "🚆",
+                    "estimated_fare_range": "₹45 - ₹120 / person",
+                    "duration": "1 hr 10 mins",
+                    "pricing_type": "Fixed IRCTC Fare",
+                    "bargaining_tip": "Fixed ticket. Take ₹30 auto to Raiwala Junction or direct trains from Dehradun to Haridwar.",
+                    "is_recommended": False,
+                    "availability": "Frequent daily schedules"
+                }
+            ],
+            "hotel_last_mile": "From Haridwar Railway / Bus Station to your Ganga Ghat Hotel: E-Rickshaws charge ₹30-50 per seat. Auto-rickshaws charge ₹100-150 (Always bargain!)."
+        }
+    
+    # 2. Rishikesh
+    if "rishikesh" in dest_lower:
+        return {
+            "has_ground_transfer": True,
+            "hub_airport": "Jolly Grant Airport, Dehradun (DED)",
+            "distance_km": 21,
+            "summary": "Flight lands at Dehradun Jolly Grant (DED) • 21 km from Rishikesh. Choose your onward ground transfer:",
+            "options": [
+                {
+                    "mode": "cab",
+                    "title": "Local Taxi / Pre-paid Cab",
+                    "icon": "🚕",
+                    "estimated_fare_range": "₹800 - ₹1,100",
+                    "duration": "35 mins",
+                    "pricing_type": "Bargainable / Pre-paid Union",
+                    "bargaining_tip": "Prepaid counter charges fixed ₹1,050. Outside gate drivers will take ₹800-₹900 after brief bargaining.",
+                    "is_recommended": True,
+                    "availability": "24x7 Available"
+                },
+                {
+                    "mode": "bus",
+                    "title": "Local UTC AC Shuttle",
+                    "icon": "🚌",
+                    "estimated_fare_range": "₹80 - ₹120 / person",
+                    "duration": "50 mins",
+                    "pricing_type": "Fixed Government Ticket",
+                    "bargaining_tip": "Buses available at Jolly Grant bypass towards Tapovan & Rishikesh Natraj Chowk.",
+                    "is_recommended": False,
+                    "availability": "06:00 AM - 10:00 PM"
+                }
+            ],
+            "hotel_last_mile": "From Rishikesh bus stand to Tapovan / Laxman Jhula hotels: Shared Vikram auto charges ₹20-30/seat; Private auto charges ₹100-150."
+        }
+
+    # 3. Bir Billing
+    if "bir" in dest_lower or "billing" in dest_lower:
+        return {
+            "has_ground_transfer": True,
+            "hub_airport": "Kangra Airport, Gaggal (DHM)",
+            "distance_km": 68,
+            "summary": "Flight lands at Gaggal Kangra (DHM) • 68 km from Bir Billing. Choose your onward ground transfer:",
+            "options": [
+                {
+                    "mode": "cab",
+                    "title": "Local Hill Taxi / Pre-paid Cab",
+                    "icon": "🚕",
+                    "estimated_fare_range": "₹2,200 - ₹2,700",
+                    "duration": "2 hrs 15 mins",
+                    "pricing_type": "Bargainable / Union Slip",
+                    "bargaining_tip": "Airport taxi counter gives fixed union slip for ₹2,650. Outside Gaggal chowk stand, you can negotiate private Alto/Dzire down to ₹2,100 - ₹2,300. Shared Boleros to Baijnath charge ₹250/seat.",
+                    "is_recommended": True,
+                    "availability": "24x7 Outside Airport Terminal"
+                },
+                {
+                    "mode": "bus",
+                    "title": "HRTC Mountain Express Bus",
+                    "icon": "🚌",
+                    "estimated_fare_range": "₹110 - ₹160 / person",
+                    "duration": "3 hrs",
+                    "pricing_type": "Fixed State Transport Ticket",
+                    "bargaining_tip": "Fixed fare. Take ₹30 auto from airport to Gaggal Chowk, then board direct HRTC bus to Baijnath/Bir Tibetan Colony.",
+                    "is_recommended": False,
+                    "availability": "Hourly departures until 07:00 PM"
+                },
+                {
+                    "mode": "train",
+                    "title": "Kangra Valley Toy Train (Scenic Heritage)",
+                    "icon": "🚆",
+                    "estimated_fare_range": "₹35 - ₹70 / person",
+                    "duration": "3.5 hrs (Ultra Scenic)",
+                    "pricing_type": "Fixed Heritage Ticket",
+                    "bargaining_tip": "Board at Kangra Mandir station to Ahju (just 3 km from Bir). Incredible pine mountain views over river gorges!",
+                    "is_recommended": False,
+                    "availability": "3 Daily Toy Train Services"
+                }
+            ],
+            "hotel_last_mile": "From Bir Tibetan Colony to Upper Billing launch site: 4x4 Gypsy is fixed at ₹600-800 by Paragliding Association."
+        }
+
+    # 4. Kasol / Parvati Valley
+    if "kasol" in dest_lower or "parvati" in dest_lower:
+        return {
+            "has_ground_transfer": True,
+            "hub_airport": "Kullu-Manali Airport, Bhuntar (KUU)",
+            "distance_km": 31,
+            "summary": "Flight lands at Bhuntar (KUU) • 31 km from Kasol & Parvati Valley. Choose your onward ground transfer:",
+            "options": [
+                {
+                    "mode": "cab",
+                    "title": "Parvati Valley Hill Taxi",
+                    "icon": "🚕",
+                    "estimated_fare_range": "₹1,300 - ₹1,600",
+                    "duration": "1 hr 10 mins",
+                    "pricing_type": "Semi-Fixed Taxi Union",
+                    "bargaining_tip": "Bhuntar Taxi Union operates with fixed rate chart. Little bargaining inside stand, but off-duty returning drivers on the main bridge will offer ₹1,200.",
+                    "is_recommended": True,
+                    "availability": "Available for all flight arrivals"
+                },
+                {
+                    "mode": "bus",
+                    "title": "HRTC Manikaran Local Bus",
+                    "icon": "🚌",
+                    "estimated_fare_range": "₹65 - ₹90 / person",
+                    "duration": "1 hr 45 mins",
+                    "pricing_type": "Fixed Ticket",
+                    "bargaining_tip": "Fixed ticket. Walk 500m from airport gate to Bhuntar bus stand; buses to Kasol depart every 30 mins.",
+                    "is_recommended": False,
+                    "availability": "07:00 AM - 07:30 PM"
+                }
+            ],
+            "hotel_last_mile": "From Kasol bridge to Chalal / Katagla homestays: Walking trail across suspension bridge (free/scenic) or ₹50 shared auto."
+        }
+
+    # 5. Manali
+    if "manali" in dest_lower:
+        return {
+            "has_ground_transfer": True,
+            "hub_airport": "Kullu-Manali Airport, Bhuntar (KUU)",
+            "distance_km": 50,
+            "summary": "Flight lands at Bhuntar (KUU) • 50 km from Manali Mall Road. Choose your onward ground transfer:",
+            "options": [
+                {
+                    "mode": "cab",
+                    "title": "Kullu-Manali Valley Taxi",
+                    "icon": "🚕",
+                    "estimated_fare_range": "₹2,000 - ₹2,500",
+                    "duration": "1 hr 30 mins",
+                    "pricing_type": "Union Regulated / Bargainable",
+                    "bargaining_tip": "Taxi Union desk charges ₹2,400. In off-peak hours or outside stand, negotiate for ₹1,900 - ₹2,100.",
+                    "is_recommended": True,
+                    "availability": "24x7 at Airport"
+                },
+                {
+                    "mode": "bus",
+                    "title": "HRTC Volvo / Deluxe Express",
+                    "icon": "🚌",
+                    "estimated_fare_range": "₹140 - ₹260 / person",
+                    "duration": "2 hrs",
+                    "pricing_type": "Fixed Fare",
+                    "bargaining_tip": "Frequent buses ply on the 4-lane highway right outside Bhuntar bypass.",
+                    "is_recommended": False,
+                    "availability": "06:00 AM - 10:00 PM"
+                }
+            ],
+            "hotel_last_mile": "From Manali Private Bus Stand to Old Manali / Aleo hotels: Local autos charge ₹150-200 (Bargain down by ₹50)."
+        }
+
+    # 6. Ooty / Nilgiris
+    if "ooty" in dest_lower or "nilgiris" in dest_lower:
+        return {
+            "has_ground_transfer": True,
+            "hub_airport": "Coimbatore Int'l Airport (CJB)",
+            "distance_km": 88,
+            "summary": "Flight lands at Coimbatore (CJB) • 88 km scenic ghat road to Ooty. Choose your onward ground transfer:",
+            "options": [
+                {
+                    "mode": "cab",
+                    "title": "Nilgiri Ghat Taxi",
+                    "icon": "🚕",
+                    "estimated_fare_range": "₹2,400 - ₹3,000",
+                    "duration": "2.5 hrs",
+                    "pricing_type": "Pre-paid Counter / Bargainable",
+                    "bargaining_tip": "Airport prepaid booth charges ₹2,900. Online / outside drivers negotiate for ₹2,300 - ₹2,500 including ghat tolls.",
+                    "is_recommended": True,
+                    "availability": "24x7 Available"
+                },
+                {
+                    "mode": "train",
+                    "title": "Nilgiri Mountain UNESCO Toy Train",
+                    "icon": "🚆",
+                    "estimated_fare_range": "₹50 - ₹205 / person",
+                    "duration": "3 hrs (from Mettupalayam)",
+                    "pricing_type": "Fixed Heritage IRCTC",
+                    "bargaining_tip": "Take a 45-min taxi/bus to Mettupalayam station, then board historic steam engine toy train through 16 tunnels and tea estates!",
+                    "is_recommended": False,
+                    "availability": "Daily morning departures"
+                },
+                {
+                    "mode": "bus",
+                    "title": "TNSTC / SETC Hill Bus",
+                    "icon": "🚌",
+                    "estimated_fare_range": "₹95 - ₹160 / person",
+                    "duration": "3.5 hrs",
+                    "pricing_type": "Fixed Government Ticket",
+                    "bargaining_tip": "Buses leave every 20 mins from Gandhipuram / Mettupalayam to Ooty ATC stand.",
+                    "is_recommended": False,
+                    "availability": "05:00 AM - 11:00 PM"
+                }
+            ],
+            "hotel_last_mile": "From Ooty bus stand / station to Lake / Fern Hill hotels: Local auto ₹80-120 (Bargaining necessary)."
+        }
+
+    # 7. Munnar
+    if "munnar" in dest_lower:
+        return {
+            "has_ground_transfer": True,
+            "hub_airport": "Cochin Int'l Airport (COK)",
+            "distance_km": 110,
+            "summary": "Flight lands at Cochin (COK) • 110 km ghat road to Munnar. Choose your onward ground transfer:",
+            "options": [
+                {
+                    "mode": "cab",
+                    "title": "Western Ghats Private Cab",
+                    "icon": "🚕",
+                    "estimated_fare_range": "₹3,000 - ₹3,600",
+                    "duration": "3.5 hrs",
+                    "pricing_type": "Pre-paid Counter / Uber Intercity",
+                    "bargaining_tip": "Cochin Airport Prepaid Taxi booth is strictly FIXED rate (₹3,450). Uber Intercity quotes ₹2,800-₹3,100 depending on time.",
+                    "is_recommended": True,
+                    "availability": "24x7 at Terminal 1 & 3"
+                },
+                {
+                    "mode": "bus",
+                    "title": "KSRTC Fast Passenger Hill Bus",
+                    "icon": "🚌",
+                    "estimated_fare_range": "₹140 - ₹190 / person",
+                    "duration": "4.5 hrs",
+                    "pricing_type": "Fixed State Ticket",
+                    "bargaining_tip": "Take 10-min feeder bus to Aluva KSRTC stand, direct buses to Munnar leave every 45 mins.",
+                    "is_recommended": False,
+                    "availability": "06:00 AM - 08:30 PM"
+                }
+            ],
+            "hotel_last_mile": "From Munnar town KSRTC stand to tea estate resorts: Jeeps charge ₹400-700 (bargainable); Town autos charge ₹100-150."
+        }
+
+    # 8. Direct Airport City fallback (Goa, Mumbai, Delhi, Jaipur, etc.)
+    is_direct = dest_lower in dest_name.lower() or "goa" in dest_lower or "delhi" in dest_lower or "mumbai" in dest_lower or "jaipur" in dest_lower
+    return {
+        "has_ground_transfer": not is_direct,
+        "hub_airport": f"{dest_name.title()} Airport",
+        "distance_km": 25,
+        "summary": f"Flight lands at nearest commercial airport. Here is your Airport-to-Hotel transfer guidance:",
+        "options": [
+            {
+                "mode": "cab",
+                "title": "Pre-paid Airport Taxi / App Cab",
+                "icon": "🚕",
+                "estimated_fare_range": "₹700 - ₹1,200",
+                "duration": "35 - 50 mins",
+                "pricing_type": "Fixed Counter / App Metered",
+                "bargaining_tip": "Airport Pre-paid Taxi counter is 100% FIXED rate. For street taxis outside arrivals, always negotiate down 15-20%!",
+                "is_recommended": True,
+                "availability": "24x7 Outside Arrivals"
+            },
+            {
+                "mode": "bus",
+                "title": "Airport AC Electric Shuttle Bus",
+                "icon": "🚌",
+                "estimated_fare_range": "₹50 - ₹150 / person",
+                "duration": "1 hr",
+                "pricing_type": "Fixed Government Fare",
+                "bargaining_tip": "Operated by city transport. Clean, air-conditioned and connects to major city hubs.",
+                "is_recommended": False,
+                "availability": "07:00 AM - 11:00 PM"
+            }
+        ],
+        "hotel_last_mile": f"From arrival terminal to {dest_name.title()} hotels: Pre-paid taxi counter is safest. If taking Auto-rickshaw, confirm fare before boarding!"
+    }
+
 def generate_live_flights(origin_name: str, dest_name: str, dep_date: str, ret_date: str, travelers: int, travel_class: str = "economy") -> List[Dict]:
     """
     Generates realistic, rich flight candidates between 96+ Indian airport hubs with:
@@ -467,6 +775,9 @@ def generate_live_flights(origin_name: str, dest_name: str, dep_date: str, ret_d
                 "best_choice": False
             }
 
+        # Multi-modal onward ground transfer & bargaining intelligence
+        ground_intel = get_ground_transfer_intelligence(dest_hub["iata"], dest_name, travelers)
+
         candidates.append({
             "id": f"flight_{air['prefix'].lower()}_{idx}",
             "airline": air["name"],
@@ -490,6 +801,8 @@ def generate_live_flights(origin_name: str, dest_name: str, dep_date: str, ret_d
             "is_multi_leg": is_connecting,
             "accessibility_note": ground_transfer_note or f"Direct commercial flight from {orig_hub['iata']} to {dest_hub['iata']}.",
             "dual_airport_advice": dual_airport_advice,
+            "ground_transfer_intelligence": ground_intel,
+            "selected_ground_transfer": ground_intel["options"][0]["title"] if ground_intel.get("options") else None,
             "cancellation_policy": cancellation,
             "promo_code": promo
         })
