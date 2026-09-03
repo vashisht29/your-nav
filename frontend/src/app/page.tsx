@@ -1404,30 +1404,118 @@ export default function Home() {
                 {transportMode === "bus" && transits.map((b) => (
                   <div
                     key={b.id}
-                    className={`p-3 border rounded-xl transition-all ${
-                      selectedTransit?.id === b.id ? "bg-primary-50 border-primary-500" : "bg-slate-50 border-slate-200"
+                    className={`p-3.5 border rounded-xl transition-all space-y-2 ${
+                      selectedTransit?.id === b.id ? "bg-emerald-50/80 border-emerald-500 shadow-sm" : "bg-slate-50 border-slate-200 hover:border-slate-300"
                     }`}
                   >
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-800 flex items-center gap-1">
-                        <Compass className="w-3.5 h-3.5 text-emerald-500" /> {b.operator}
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Compass className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="font-extrabold text-slate-800 text-xs">{b.operator}</span>
+                          {b.rating && (
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                              ⭐ {b.rating}
+                            </span>
+                          )}
+                          {b.otp_rate && (
+                            <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                              {b.otp_rate}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium mt-1 flex items-center gap-1">
+                          <span className="font-bold text-slate-700">{b.departure_time}</span>
+                          <span>➔</span>
+                          <span className="font-bold text-slate-700">{b.arrival_time}</span>
+                          <span>•</span>
+                          <span>{b.duration_hrs}h journey</span>
+                          <span>•</span>
+                          <span className="font-bold text-emerald-700">{b.bus_type}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-extrabold text-slate-900 text-xs">₹{b.total_price_inr}</span>
+                        <span className="block text-[9px] text-slate-400 font-medium">(₹{b.cost_inr}/person)</span>
+                      </div>
+                    </div>
+
+                    {/* Boarding and Dropping Hubs */}
+                    <div className="bg-white/80 border border-slate-200/80 rounded-lg p-2 text-[10px] text-slate-600 space-y-1">
+                      <div className="flex items-center justify-between font-semibold">
+                        <span className="truncate max-w-[48%]">🚏 {b.origin_hub || "Origin Bus Hub"}</span>
+                        <span className="text-slate-400">➔</span>
+                        <span className="truncate max-w-[48%] text-right">🏁 {b.destination_hub || "Dest Bus Hub"}</span>
+                      </div>
+                      {b.amenities && (
+                        <div className="flex flex-wrap gap-1 border-t pt-1">
+                          {b.amenities.map((am: string, amIdx: number) => (
+                            <span key={amIdx} className="text-[8px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded">
+                              {am}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 🚌 Dynamic Seat Tier / Position Selection Options (Lower Front vs Rear Saver) */}
+                    {b.class_options && b.class_options.length > 0 && (
+                      <div className="pt-1.5 border-t border-slate-200/60 space-y-1">
+                        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                          Choose Berth / Seat Position (Peeche vs Aage):
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                          {b.class_options.map((opt: any) => {
+                            const isSelected = b.travel_class === opt.class_name;
+                            return (
+                              <button
+                                key={opt.class_name}
+                                type="button"
+                                onClick={() => handleSelectTransitClass(b.id, opt)}
+                                className={`p-1.5 text-left rounded-lg text-[10px] border transition-all ${
+                                  isSelected
+                                    ? "bg-emerald-600 text-white border-emerald-600 font-bold shadow-sm ring-1 ring-emerald-400"
+                                    : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
+                                }`}
+                              >
+                                <span className="block truncate text-[10px]">{opt.class_name}</span>
+                                {opt.seat_desc && (
+                                  <span className={`text-[8px] block ${isSelected ? "text-emerald-100" : "text-slate-400"}`}>
+                                    {opt.seat_desc}
+                                  </span>
+                                )}
+                                <span className={`font-extrabold text-[11px] block ${isSelected ? "text-white" : "text-slate-900"}`}>
+                                  ₹{opt.total_price_inr}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Promo & Refund Highlights */}
+                    <div className="flex items-center justify-between text-[9px] text-slate-500">
+                      <span className="text-emerald-700 font-bold flex items-center gap-0.5">
+                        🛡️ {b.cancellation_policy?.summary || "90% Refund Eligible"}
                       </span>
-                      <span className="font-extrabold text-slate-700">₹{b.total_price_inr}</span>
+                      {b.promo_code && (
+                        <span className="font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                          🎟️ {b.promo_code.code}: Save ₹{b.promo_code.discount_inr}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-2">
-                      <span className="truncate max-w-[130px]">{b.bus_type}</span>
-                      <span>{b.duration_hrs} hrs</span>
-                    </div>
-                    <div className="flex gap-2 mt-3">
+
+                    <div className="flex gap-2 pt-1">
                       <button
                         onClick={() => setSelectedTransit(b)}
-                        className="flex-1 py-1.5 bg-primary-600 text-white font-bold rounded-lg text-[10px]"
+                        className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] shadow-sm transition-all"
                       >
-                        Select Option
+                        {selectedTransit?.id === b.id ? "✓ Selected Bus" : "Select Bus"}
                       </button>
                       <button
                         onClick={() => setInspectingTransit(b)}
-                        className="px-2.5 py-1.5 border hover:bg-slate-100 rounded-lg text-[10px] text-slate-500 font-bold"
+                        className="px-2.5 py-1.5 bg-white border hover:bg-slate-100 rounded-lg text-[10px] text-slate-600 font-bold shadow-sm"
                       >
                         {t.detailsBtn}
                       </button>
