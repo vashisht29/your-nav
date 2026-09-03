@@ -120,6 +120,7 @@ def get_suggestions(q: str):
     return {"suggestions": agent_orchestrator.search_destination(q)}
 
 from flight_engine import generate_live_flights
+from railway_engine import generate_live_trains
 
 @app.post("/api/search/transit")
 def get_transits(req: TransitSearchRequest):
@@ -143,6 +144,18 @@ def get_transits(req: TransitSearchRequest):
         )
         if flight_candidates:
             return {"transits": flight_candidates}
+
+    if req.mode == "train":
+        train_candidates = generate_live_trains(
+            origin_name=req.origin,
+            dest_name=req.destination,
+            dep_date=req.departure_date,
+            ret_date=req.return_date,
+            travelers=req.travelers,
+            travel_class=req.travel_class or "3A"
+        )
+        if train_candidates:
+            return {"transits": train_candidates}
 
     from agent_orchestrator import agent_orchestrator
     candidates = agent_orchestrator.search_transport(

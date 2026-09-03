@@ -399,6 +399,11 @@ def generate_live_flights(origin_name: str, dest_name: str, dep_date: str, ret_d
             is_connecting = True
             ground_transfer_note = f"Land at {dest_hub['name']} ({dest_hub['iata']}) + scenic ground transfer to {dest_name}."
 
+        # Promo Code & Cancellation Policy Slabs
+        from railway_engine import get_flight_cancellation_policy, get_applicable_promo_code
+        cancellation = get_flight_cancellation_policy(air["name"], class_name)
+        promo = get_applicable_promo_code("flight", total_fare, travelers)
+
         candidates.append({
             "id": f"flight_{air['prefix'].lower()}_{idx}",
             "airline": air["name"],
@@ -419,7 +424,9 @@ def generate_live_flights(origin_name: str, dest_name: str, dep_date: str, ret_d
             "otp_rate": air["otp"],
             "baggage_allowance": "30 kg Check-in + 10 kg Cabin" if travel_class == "business" else "15 kg Check-in + 7 kg Cabin",
             "is_multi_leg": is_connecting,
-            "accessibility_note": ground_transfer_note or f"Direct commercial flight from {orig_hub['iata']} to {dest_hub['iata']}."
+            "accessibility_note": ground_transfer_note or f"Direct commercial flight from {orig_hub['iata']} to {dest_hub['iata']}.",
+            "cancellation_policy": cancellation,
+            "promo_code": promo
         })
 
     return sorted(candidates, key=lambda x: x["total_price_inr"])
