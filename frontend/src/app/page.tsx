@@ -327,6 +327,7 @@ export default function Home() {
 
   // Inspector States
   const [inspectingTransit, setInspectingTransit] = useState<any>(null);
+  const [groundTransferModalTransit, setGroundTransferModalTransit] = useState<any>(null);
   const [inspectingHotel, setInspectingHotel] = useState<any>(null);
   const [activeModalImage, setActiveModalImage] = useState<string>("");
   const [travelClass, setTravelClass] = useState("economy");
@@ -1330,82 +1331,20 @@ export default function Home() {
                       )}
                     </div>
 
-                    {/* 🚗 Onward Ground Transfer & Taxi Bargaining Hub */}
+                    {/* 🚗 Clean Minimal Onward Ground Transfer Pill */}
                     {f.ground_transfer_intelligence && f.ground_transfer_intelligence.has_ground_transfer && (
-                      <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-2.5 space-y-2 text-[10px]">
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-amber-900 flex items-center gap-1">
-                            🚗 Onward Ground Transfer (Landing at {f.destination_iata})
-                          </span>
-                          <span className="text-[9px] font-bold text-amber-700 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full">
-                            {f.ground_transfer_intelligence.distance_km} km to {destination}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-amber-900/80 font-medium">
-                          {f.ground_transfer_intelligence.summary}
-                        </p>
-
-                        {/* 1-Click Select Onward Transfer Option */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-0.5">
-                          {f.ground_transfer_intelligence.options.map((opt: any, optIdx: number) => {
-                            const isSel = (f.selected_ground_transfer || f.ground_transfer_intelligence.options[0].title) === opt.title;
-                            return (
-                              <button
-                                key={optIdx}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSelectGroundTransfer(f.id, opt);
-                                }}
-                                className={`p-2 rounded-xl border text-left transition-all ${
-                                  isSel
-                                    ? "bg-amber-600 text-white border-amber-600 font-bold shadow-sm ring-2 ring-amber-300"
-                                    : "bg-white hover:bg-amber-50/80 text-slate-700 border-amber-200/80"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm">{opt.icon}</span>
-                                  <span className={`text-[8px] font-extrabold px-1.5 py-0.2 rounded uppercase ${
-                                    isSel ? "bg-amber-700 text-amber-100" : "bg-slate-100 text-slate-500"
-                                  }`}>
-                                    {opt.mode}
-                                  </span>
-                                </div>
-                                <span className="font-bold text-[10px] block truncate mt-1">{opt.title.split("/")[0]}</span>
-                                <span className={`text-[10px] font-black block ${isSel ? "text-white" : "text-amber-950"}`}>
-                                  {opt.estimated_fare_range}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* Active Onward Option Insights: Bargaining & Timing */}
-                        {(() => {
-                          const activeOpt = f.ground_transfer_intelligence.options.find(
-                            (o: any) => o.title === (f.selected_ground_transfer || f.ground_transfer_intelligence.options[0].title)
-                          ) || f.ground_transfer_intelligence.options[0];
-                          return (
-                            <div className="p-2.5 bg-white/95 border border-amber-200/80 rounded-xl space-y-1 text-[9px] shadow-xs">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-slate-800">⏱️ Est. Travel Time: {activeOpt.duration}</span>
-                                <span className={`font-extrabold px-2 py-0.5 rounded text-[8px] ${
-                                  activeOpt.pricing_type.includes("Bargain") ? "bg-orange-100 text-orange-800 border border-orange-200" : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                }`}>
-                                  {activeOpt.pricing_type}
-                                </span>
-                              </div>
-                              <p className="text-slate-600 font-medium leading-relaxed">
-                                💡 <strong>Bargaining Guide:</strong> {activeOpt.bargaining_tip}
-                              </p>
-                              <div className="flex justify-between items-center text-[8px] text-slate-400 pt-0.5 border-t border-slate-100">
-                                <span>📍 {f.ground_transfer_intelligence.hotel_last_mile}</span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                        <span className="text-[8px] text-amber-700 font-medium italic block text-right">
-                          * Ground transfer fare is paid directly during travel; not included in flight ticket.
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setGroundTransferModalTransit(f);
+                        }}
+                        className="flex items-center justify-between text-[10px] bg-amber-50/80 hover:bg-amber-100/90 border border-amber-200/80 px-2.5 py-1.5 rounded-lg text-amber-950 transition-all cursor-pointer shadow-xs"
+                      >
+                        <span className="font-semibold flex items-center gap-1">
+                          🚗 <strong>Onward Transfer:</strong> Lands at {f.destination_iata} ({f.ground_transfer_intelligence.distance_km} km to {destination})
+                        </span>
+                        <span className="font-bold text-amber-800 hover:underline flex items-center gap-0.5">
+                          {f.selected_ground_transfer ? `✓ ${f.selected_ground_transfer.split("/")[0]}` : "Choose Cab / Bus ➔"}
                         </span>
                       </div>
                     )}
@@ -1420,7 +1359,12 @@ export default function Home() {
 
                     <div className="flex gap-2 pt-1">
                       <button
-                        onClick={() => setSelectedTransit(f)}
+                        onClick={() => {
+                          setSelectedTransit(f);
+                          if (f.ground_transfer_intelligence && f.ground_transfer_intelligence.has_ground_transfer) {
+                            setGroundTransferModalTransit(f);
+                          }
+                        }}
                         className="flex-1 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg text-[10px] shadow-sm transition-all"
                       >
                         {selectedTransit?.id === f.id ? "✓ Selected Flight" : "Select Flight"}
@@ -2594,6 +2538,111 @@ export default function Home() {
               className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold"
             >
               {t.closeBtn}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🚗 Dedicated Onward Ground Transfer & Taxi Bargaining Popup Window */}
+      {groundTransferModalTransit && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 relative space-y-4 shadow-2xl">
+            <button
+              onClick={() => setGroundTransferModalTransit(null)}
+              className="absolute right-4 top-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="border-b pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2.5 bg-amber-100 text-amber-800 rounded-2xl text-lg">🚗</span>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 leading-tight">
+                    Onward Ground Transfer & Taxi Guide
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                    Flight lands at {groundTransferModalTransit.destination_iata || "nearest airport"} ({groundTransferModalTransit.ground_transfer_intelligence?.distance_km} km from {destination})
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-600 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              {groundTransferModalTransit.ground_transfer_intelligence?.summary}
+            </p>
+
+            {/* 1-Click Interactive Mode Selector */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider block">
+                Choose How You Want to Reach {destination}:
+              </span>
+              <div className="space-y-2">
+                {groundTransferModalTransit.ground_transfer_intelligence?.options.map((opt: any, optIdx: number) => {
+                  const isSel = (groundTransferModalTransit.selected_ground_transfer || groundTransferModalTransit.ground_transfer_intelligence.options[0].title) === opt.title;
+                  return (
+                    <div
+                      key={optIdx}
+                      onClick={() => {
+                        handleSelectGroundTransfer(groundTransferModalTransit.id, opt);
+                        setGroundTransferModalTransit({
+                          ...groundTransferModalTransit,
+                          selected_ground_transfer: opt.title,
+                          selected_ground_option: opt
+                        });
+                      }}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        isSel
+                          ? "bg-amber-50/90 border-amber-500 shadow-sm ring-2 ring-amber-300"
+                          : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xl">{opt.icon}</span>
+                          <div>
+                            <span className="font-extrabold text-xs text-slate-900 block">{opt.title}</span>
+                            <span className="text-[9px] text-slate-500 font-medium">⏱️ {opt.duration} • {opt.availability}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-black text-xs text-slate-900 block">{opt.estimated_fare_range}</span>
+                          <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase ${
+                            opt.pricing_type.includes("Bargain") ? "bg-orange-100 text-orange-800 border border-orange-200" : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                          }`}>
+                            {opt.pricing_type}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bargaining guide when selected */}
+                      {isSel && (
+                        <div className="mt-2.5 pt-2 border-t border-amber-200/70 text-[9px] text-amber-950 font-medium space-y-1">
+                          <p>💡 <strong>Bargaining Guide:</strong> {opt.bargaining_tip}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Hotel last-mile tip */}
+            {groundTransferModalTransit.ground_transfer_intelligence?.hotel_last_mile && (
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[9px] text-emerald-950">
+                <strong>🏨 Local Hotel Last-Mile Tip:</strong> {groundTransferModalTransit.ground_transfer_intelligence.hotel_last_mile}
+              </div>
+            )}
+
+            <div className="text-[9px] text-slate-400 italic">
+              * Ground transfer fare is paid directly during journey; not charged in flight booking.
+            </div>
+
+            <button
+              onClick={() => setGroundTransferModalTransit(null)}
+              className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs shadow-md transition-all"
+            >
+              Confirm Onward Transfer Selection ✓
             </button>
           </div>
         </div>
