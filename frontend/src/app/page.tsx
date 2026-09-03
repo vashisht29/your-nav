@@ -1248,7 +1248,7 @@ export default function Home() {
             <div className="space-y-4 animate-fade-in">
               <h3 className="font-extrabold text-slate-800 text-xs">{t.selectTransit}</h3>
               
-              <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[340px] overflow-y-auto p-1.5 pr-2">
                 {/* 1. Flights List */}
                 {transportMode === "flight" && transits.map((f) => (
                   <div
@@ -1257,8 +1257,8 @@ export default function Home() {
                       selectedTransit?.id === f.id ? "bg-primary-50/80 border-primary-500 shadow-sm" : "bg-slate-50 border-slate-200 hover:border-slate-300"
                     }`}
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <Plane className="w-3.5 h-3.5 text-primary-600" />
                           <span className="font-extrabold text-slate-800 text-xs">{f.airline}</span>
@@ -1290,8 +1290,8 @@ export default function Home() {
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="font-extrabold text-slate-900 text-xs">₹{f.total_price_inr}</span>
+                      <div className="text-right flex-shrink-0 whitespace-nowrap pl-2">
+                        <span className="font-extrabold text-slate-900 text-sm block">₹{f.total_price_inr}</span>
                         <span className="block text-[9px] text-slate-400 font-medium">(₹{f.cost_inr}/person)</span>
                       </div>
                     </div>
@@ -1317,36 +1317,13 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* 💺 Dynamic Airline Class Selection Options */}
-                    {f.class_options && f.class_options.length > 0 && (
-                      <div className="pt-1.5 border-t border-slate-200/60 space-y-1">
-                        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">
-                          Choose Class Option (1-Click Price Update):
-                        </span>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                          {f.class_options.map((opt: any) => {
-                            const isSelected = f.travel_class === opt.class_name;
-                            return (
-                              <button
-                                key={opt.class_name}
-                                type="button"
-                                onClick={() => handleSelectTransitClass(f.id, opt)}
-                                className={`p-1.5 text-left rounded-lg text-[10px] border transition-all ${
-                                  isSelected
-                                    ? "bg-primary-600 text-white border-primary-600 font-bold shadow-sm ring-1 ring-primary-400"
-                                    : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
-                                }`}
-                              >
-                                <span className="block truncate text-[10px]">{opt.class_name}</span>
-                                <span className={`font-extrabold text-[11px] block ${isSelected ? "text-white" : "text-slate-900"}`}>
-                                  ₹{opt.total_price_inr}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    {/* Clean Selected Class Pill */}
+                    <div className="flex items-center justify-between text-[10px] bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/60">
+                      <span className="text-slate-600 font-medium">Cabin Class: <strong className="text-slate-900">{f.travel_class || "Saver Economy"}</strong></span>
+                      <button type="button" onClick={() => setInspectingTransit(f)} className="text-primary-600 hover:text-primary-700 font-bold hover:underline">
+                        Change Class ➔
+                      </button>
+                    </div>
 
                     <div className="flex gap-2 pt-1">
                       <button
@@ -1397,8 +1374,8 @@ export default function Home() {
                           <span className="font-bold text-indigo-600">{tr.travel_class} Class</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="font-extrabold text-slate-900 text-xs">₹{tr.total_price_inr}</span>
+                      <div className="text-right flex-shrink-0 whitespace-nowrap pl-2">
+                        <span className="font-extrabold text-slate-900 text-sm block">₹{tr.total_price_inr}</span>
                         <span className="block text-[9px] text-slate-400 font-medium">(₹{tr.cost_inr}/person)</span>
                       </div>
                     </div>
@@ -1422,36 +1399,13 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* 🚆 Dynamic IRCTC Class Selection Options */}
-                    {tr.class_options && tr.class_options.length > 0 && (
-                      <div className="pt-1.5 border-t border-slate-200/60 space-y-1">
-                        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">
-                          Choose IRCTC Travel Class & Fare:
-                        </span>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                          {tr.class_options.map((opt: any) => {
-                            const isSelected = tr.travel_class === opt.class_name;
-                            return (
-                              <button
-                                key={opt.class_name}
-                                type="button"
-                                onClick={() => handleSelectTransitClass(tr.id, opt)}
-                                className={`p-1.5 text-left rounded-lg text-[10px] border transition-all ${
-                                  isSelected
-                                    ? "bg-indigo-600 text-white border-indigo-600 font-bold shadow-sm ring-1 ring-indigo-400"
-                                    : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
-                                }`}
-                              >
-                                <span className="block truncate text-[10px]">{opt.class_name}</span>
-                                <span className={`font-extrabold text-[11px] block ${isSelected ? "text-white" : "text-slate-900"}`}>
-                                  ₹{opt.total_price_inr}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    {/* Clean Selected IRCTC Class Pill */}
+                    <div className="flex items-center justify-between text-[10px] bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/60">
+                      <span className="text-slate-600 font-medium">IRCTC Class: <strong className="text-indigo-900">{tr.travel_class || "3A"}</strong></span>
+                      <button type="button" onClick={() => setInspectingTransit(tr)} className="text-indigo-600 hover:text-indigo-700 font-bold hover:underline">
+                        Change Class ➔
+                      </button>
+                    </div>
 
                     {/* Promo & Refund Highlights */}
                     <div className="flex items-center justify-between text-[9px] text-slate-500">
@@ -1516,8 +1470,8 @@ export default function Home() {
                           <span className="font-bold text-emerald-700">{b.bus_type}</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="font-extrabold text-slate-900 text-xs">₹{b.total_price_inr}</span>
+                      <div className="text-right flex-shrink-0 whitespace-nowrap pl-2">
+                        <span className="font-extrabold text-slate-900 text-sm block">₹{b.total_price_inr}</span>
                         <span className="block text-[9px] text-slate-400 font-medium">(₹{b.cost_inr}/person)</span>
                       </div>
                     </div>
@@ -1540,41 +1494,13 @@ export default function Home() {
                       )}
                     </div>
 
-                    {/* 🚌 Dynamic Seat Tier / Position Selection Options (Lower Front vs Rear Saver) */}
-                    {b.class_options && b.class_options.length > 0 && (
-                      <div className="pt-1.5 border-t border-slate-200/60 space-y-1">
-                        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">
-                          Choose Berth / Seat Position (Peeche vs Aage):
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                          {b.class_options.map((opt: any) => {
-                            const isSelected = b.travel_class === opt.class_name;
-                            return (
-                              <button
-                                key={opt.class_name}
-                                type="button"
-                                onClick={() => handleSelectTransitClass(b.id, opt)}
-                                className={`p-1.5 text-left rounded-lg text-[10px] border transition-all ${
-                                  isSelected
-                                    ? "bg-emerald-600 text-white border-emerald-600 font-bold shadow-sm ring-1 ring-emerald-400"
-                                    : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
-                                }`}
-                              >
-                                <span className="block truncate text-[10px]">{opt.class_name}</span>
-                                {opt.seat_desc && (
-                                  <span className={`text-[8px] block ${isSelected ? "text-emerald-100" : "text-slate-400"}`}>
-                                    {opt.seat_desc}
-                                  </span>
-                                )}
-                                <span className={`font-extrabold text-[11px] block ${isSelected ? "text-white" : "text-slate-900"}`}>
-                                  ₹{opt.total_price_inr}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    {/* Clean Selected Seat Pill */}
+                    <div className="flex items-center justify-between text-[10px] bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/60">
+                      <span className="text-slate-600 font-medium">Berth: <strong className="text-emerald-900">{b.travel_class || "Lower Berth"}</strong></span>
+                      <button type="button" onClick={() => setInspectingTransit(b)} className="text-emerald-600 hover:text-emerald-700 font-bold hover:underline">
+                        Change Seat ➔
+                      </button>
+                    </div>
 
                     {/* Promo & Refund Highlights */}
                     <div className="flex items-center justify-between text-[9px] text-slate-500">
@@ -1888,7 +1814,7 @@ export default function Home() {
                 <span>{t.selectHotel} (Hostels, Homestays & 5-Star Palaces)</span>
                 <span className="text-[10px] text-slate-400 font-normal">Sorted by Proximity & Value</span>
               </h3>
-              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[380px] overflow-y-auto p-1.5 pr-2">
                 {[...hotels].sort((a, b) => (a.proximity_km || 1) - (b.proximity_km || 1)).map((h) => (
                   <div
                     key={h.id}
@@ -1937,41 +1863,13 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* 🛏️ In-Card Dynamic Room Tier Selector */}
-                    {h.room_options && h.room_options.length > 0 && (
-                      <div className="pt-1 border-t border-slate-200/60 space-y-1">
-                        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">
-                          Choose Room Category & Meal Plan:
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                          {h.room_options.map((opt: any) => {
-                            const isSelected = (h.selected_room || h.room_options[0].room_name) === opt.room_name;
-                            return (
-                              <button
-                                key={opt.room_name}
-                                type="button"
-                                onClick={() => handleSelectStayRoom(h.id, opt)}
-                                className={`p-1.5 text-left rounded-lg text-[10px] border transition-all ${
-                                  isSelected
-                                    ? "bg-amber-600 text-white border-amber-600 font-bold shadow-sm ring-1 ring-amber-400"
-                                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-                                }`}
-                              >
-                                <div className="flex justify-between items-center">
-                                  <span className="font-bold truncate text-[10px]">{opt.room_name}</span>
-                                  <span className={`font-extrabold text-[11px] ${isSelected ? "text-white" : "text-slate-900"}`}>
-                                    ₹{opt.cost_per_night}/n
-                                  </span>
-                                </div>
-                                <span className={`text-[8px] block truncate ${isSelected ? "text-amber-100" : "text-emerald-700 font-medium"}`}>
-                                  {opt.meals_included}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    {/* Clean Selected Room Category Pill */}
+                    <div className="flex items-center justify-between text-[10px] bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/60">
+                      <span className="text-slate-600 font-medium">Room: <strong className="text-amber-900">{h.selected_room || h.room_options?.[0]?.room_name || "Standard Room"}</strong></span>
+                      <button type="button" onClick={() => { setInspectingHotel(h); setActiveModalImage(h.image_url || ""); }} className="text-amber-700 hover:text-amber-800 font-bold hover:underline">
+                        Change Room ➔
+                      </button>
+                    </div>
 
                     <div className="flex gap-2 pt-0.5">
                       <button
@@ -2531,11 +2429,70 @@ export default function Home() {
                 <Info className="text-primary-500 w-4 h-4" /> Transit Details Inspection
               </h3>
             </div>
-            <div className="space-y-3.5 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Transit Category</span>
-                <span className="font-bold text-slate-800 uppercase">{transportMode}</span>
+            <div className="space-y-3.5 text-xs max-h-[420px] overflow-y-auto pr-1">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="font-extrabold text-slate-900 text-sm block">{inspectingTransit.airline || inspectingTransit.train_name || inspectingTransit.operator}</span>
+                  <span className="text-[10px] font-bold text-slate-500">{inspectingTransit.flight_number || inspectingTransit.train_number || inspectingTransit.bus_type}</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-black text-slate-900 text-sm block">₹{inspectingTransit.total_price_inr}</span>
+                  <span className="text-[9px] text-slate-400 font-medium">(₹{inspectingTransit.cost_inr}/person)</span>
+                </div>
               </div>
+
+              {/* 💺 In-Modal Interactive Class / Berth Selector */}
+              {inspectingTransit.class_options && inspectingTransit.class_options.length > 0 && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <span className="text-[10px] text-slate-700 font-extrabold uppercase tracking-wider block">
+                    Choose Class Option (1-Click Price Update):
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {inspectingTransit.class_options.map((opt: any) => {
+                      const isSelected = inspectingTransit.travel_class === opt.class_name;
+                      return (
+                        <button
+                          key={opt.class_name}
+                          type="button"
+                          onClick={() => {
+                            handleSelectTransitClass(inspectingTransit.id, opt);
+                            setInspectingTransit({
+                              ...inspectingTransit,
+                              travel_class: opt.class_name,
+                              cost_inr: opt.cost_inr,
+                              total_price_inr: opt.total_price_inr,
+                              baggage_allowance: opt.baggage_allowance || inspectingTransit.baggage_allowance,
+                              cancellation_policy: opt.cancellation_policy || inspectingTransit.cancellation_policy
+                            });
+                          }}
+                          className={`p-2 text-left rounded-xl border transition-all ${
+                            isSelected
+                              ? "bg-primary-600 text-white border-primary-600 font-bold shadow-sm ring-2 ring-primary-300"
+                              : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-[11px] truncate">{opt.class_name}</span>
+                            <span className={`font-black text-xs ${isSelected ? "text-white" : "text-slate-900"}`}>
+                              ₹{opt.total_price_inr}
+                            </span>
+                          </div>
+                          {opt.seat_desc && (
+                            <span className={`text-[9px] block mt-0.5 ${isSelected ? "text-primary-100" : "text-slate-400"}`}>
+                              {opt.seat_desc}
+                            </span>
+                          )}
+                          {opt.baggage_allowance && (
+                            <span className={`text-[8px] block mt-0.5 ${isSelected ? "text-primary-200" : "text-slate-500"}`}>
+                              🧳 {opt.baggage_allowance}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-400">Name / Operator</span>
                 <span className="font-bold text-slate-800">{inspectingTransit.airline || inspectingTransit.train_name || inspectingTransit.operator}</span>
@@ -2749,23 +2706,50 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 🛏️ Available Room Categories & Meals */}
+              {/* 🛏️ Interactive Room Tier Selector inside Modal */}
               {inspectingHotel.room_options && inspectingHotel.room_options.length > 0 && (
                 <div className="border-t pt-2 space-y-1.5">
-                  <span className="text-[10px] text-slate-400 font-extrabold block uppercase">Room Categories & Meal Plans</span>
+                  <span className="text-[10px] text-slate-500 font-extrabold block uppercase">Choose Room Category & Meal Plan:</span>
                   <div className="space-y-1.5">
-                    {inspectingHotel.room_options.map((ro: any, roIdx: number) => (
-                      <div key={roIdx} className="p-2 bg-slate-50 border rounded-lg flex justify-between items-center text-[10px]">
-                        <div>
-                          <span className="font-bold text-slate-800 block">{ro.room_name}</span>
-                          <span className="text-[9px] text-emerald-700 font-medium">{ro.meals_included}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-extrabold text-slate-900 block">₹{ro.cost_per_night}/night</span>
-                          <span className="text-[8px] text-slate-400">(Total: ₹{ro.total_stay_cost_inr})</span>
-                        </div>
-                      </div>
-                    ))}
+                    {inspectingHotel.room_options.map((ro: any, roIdx: number) => {
+                      const isSelected = (inspectingHotel.selected_room || inspectingHotel.room_options[0].room_name) === ro.room_name;
+                      return (
+                        <button
+                          key={roIdx}
+                          type="button"
+                          onClick={() => {
+                            handleSelectStayRoom(inspectingHotel.id, ro);
+                            setInspectingHotel({
+                              ...inspectingHotel,
+                              selected_room: ro.room_name,
+                              cost_inr: ro.cost_per_night,
+                              total_stay_cost_inr: ro.total_stay_cost_inr,
+                              meals_included: ro.meals_included
+                            });
+                          }}
+                          className={`w-full p-2.5 rounded-xl border text-left transition-all flex justify-between items-center text-[10px] ${
+                            isSelected
+                              ? "bg-amber-600 text-white border-amber-600 font-bold shadow-sm ring-2 ring-amber-300"
+                              : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
+                          }`}
+                        >
+                          <div>
+                            <span className="font-bold text-xs block">{ro.room_name}</span>
+                            <span className={`text-[9px] ${isSelected ? "text-amber-100" : "text-emerald-700 font-medium"}`}>
+                              {ro.meals_included}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className={`font-black text-xs block ${isSelected ? "text-white" : "text-slate-900"}`}>
+                              ₹{ro.cost_per_night}/night
+                            </span>
+                            <span className={`text-[8px] ${isSelected ? "text-amber-100" : "text-slate-400"}`}>
+                              (Total: ₹{ro.total_stay_cost_inr})
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

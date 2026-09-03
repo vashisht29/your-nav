@@ -71,18 +71,23 @@ class SelectedTransit(BaseModel):
     bus_type: Optional[str] = None
     departure_time: Optional[str] = "09:00"
     arrival_time: Optional[str] = "15:00"
-    duration_hrs: float
-    total_price_inr: float
+    duration_hrs: Optional[float] = 2.0
+    total_price_inr: float = 0.0
+    cost_inr: Optional[float] = 0.0
     estimated_fuel_cost_inr: Optional[float] = 0.0
 
 class SelectedHotel(BaseModel):
     id: str
     name: str
-    cost_inr: float
-    lat: float
-    lng: float
-    star_rating: float
-    is_estimated: bool
+    cost_inr: float = 0.0
+    total_stay_cost_inr: Optional[float] = 0.0
+    lat: Optional[float] = 28.6139
+    lng: Optional[float] = 77.2090
+    star_rating: Optional[float] = 4.5
+    is_estimated: Optional[bool] = False
+    category: Optional[str] = None
+    selected_room: Optional[str] = None
+    meals_included: Optional[str] = None
 
 class Waypoint(BaseModel):
     id: str
@@ -285,10 +290,10 @@ def plan_trip(req: PlanRequest):
         "name": req.selected_hotel.name,
         "cost_inr": req.selected_hotel.cost_inr,
         "ml_score": 1.0,
-        "lat": req.selected_hotel.lat,
-        "lng": req.selected_hotel.lng,
-        "star_rating": req.selected_hotel.star_rating,
-        "is_estimated": req.selected_hotel.is_estimated
+        "lat": req.selected_hotel.lat if req.selected_hotel.lat is not None else dest_lat,
+        "lng": req.selected_hotel.lng if req.selected_hotel.lng is not None else dest_lng,
+        "star_rating": req.selected_hotel.star_rating or 4.5,
+        "is_estimated": req.selected_hotel.is_estimated or False
     }
 
     # If midway hotel selected for overnight stay
@@ -299,10 +304,10 @@ def plan_trip(req: PlanRequest):
             "name": req.selected_midway_hotel.name,
             "cost_inr": req.selected_midway_hotel.cost_inr,
             "ml_score": 1.0,
-            "lat": req.selected_midway_hotel.lat,
-            "lng": req.selected_midway_hotel.lng,
-            "star_rating": req.selected_midway_hotel.star_rating,
-            "is_estimated": req.selected_midway_hotel.is_estimated
+            "lat": req.selected_midway_hotel.lat if req.selected_midway_hotel.lat is not None else dest_lat,
+            "lng": req.selected_midway_hotel.lng if req.selected_midway_hotel.lng is not None else dest_lng,
+            "star_rating": req.selected_midway_hotel.star_rating or 4.0,
+            "is_estimated": True
         }
 
     transit_estimate = {
