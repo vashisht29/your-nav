@@ -555,6 +555,14 @@ def request_unsupported_location(req: RequestLocationBody):
         "message": f"Humne aapki location '{req.destination}' ko note kar liya hai aur hamari team ise jald hi database me add karegi!"
     }
 
+from flight_engine import get_sub_region_recommendation
+
+@app.get("/api/destinations/vibes")
+def get_destination_vibes(destination: str = "", interests: Optional[str] = ""):
+    int_list = [i.strip() for i in interests.split(",") if i.strip()] if interests else []
+    res = get_sub_region_recommendation(destination, int_list)
+    return {"status": "success", "data": res}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

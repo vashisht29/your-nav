@@ -122,6 +122,186 @@ PAN_INDIA_AIRPORTS = [
     {"iata": "AGX", "name": "Agatti Airport, Lakshadweep Islands", "city": "Agatti", "lat": 10.8239, "lng": 72.1764, "tier": 3}
 ]
 
+# Sub-Region Micro-Vibe and Dual-Airport Intelligence Registry
+SUB_REGION_VIBE_REGISTRY = {
+    "goa": {
+        "region_name": "Goa",
+        "sub_regions": [
+            {
+                "id": "north_goa",
+                "name": "North Goa (Baga / Anjuna / Calangute)",
+                "vibe": "Party, Watersports, Nightlife & Beach Cafes",
+                "airport_iata": "GOX",
+                "airport_name": "Manohar Int'l Airport, Mopa (North Goa)",
+                "persona_match": ["nightlife", "adventure", "youth", "foodie"],
+                "savings_rationale": "Closer to North beach strip — saves ~90 mins highway cab travel and ₹1,200 fare.",
+                "default": True
+            },
+            {
+                "id": "south_goa",
+                "name": "South Goa (Palolem / Colva / Cavelossim)",
+                "vibe": "Peace, Clean White Sands & 5-Star Luxury Resorts",
+                "airport_iata": "GOI",
+                "airport_name": "Dabolim Int'l Airport (South Goa)",
+                "persona_match": ["relaxation", "nature", "family", "luxury"],
+                "savings_rationale": "Directly accessible to South Goa resort belt within 25 minutes.",
+                "default": False
+            },
+            {
+                "id": "central_goa",
+                "name": "Central Goa (Panaji / Fontainhas / Old Goa)",
+                "vibe": "Portuguese Heritage, Latin Quarter, Casinos & River Cruises",
+                "airport_iata": "GOI",
+                "airport_name": "Dabolim Int'l Airport (Central/South)",
+                "persona_match": ["heritage", "culture", "shopping"],
+                "savings_rationale": "Centrally positioned for heritage walking tours and Mandovi cruise berths.",
+                "default": False
+            }
+        ]
+    },
+    "himachal": {
+        "region_name": "Himachal Pradesh",
+        "sub_regions": [
+            {
+                "id": "manali_solang",
+                "name": "Manali & Solang Valley",
+                "vibe": "Snow Valleys, Atal Tunnel & Extreme Adventure",
+                "airport_iata": "KUU",
+                "airport_name": "Kullu-Manali Airport (Bhuntar)",
+                "persona_match": ["adventure", "nature", "family"],
+                "savings_rationale": "Only 50km from Manali town — avoids 8 hours mountain road travel from plains.",
+                "default": True
+            },
+            {
+                "id": "kasol_parvati",
+                "name": "Kasol & Parvati Valley",
+                "vibe": "Riverside Cafes, Tosh, Chalal & Himalayan Treks",
+                "airport_iata": "KUU",
+                "airport_name": "Kullu-Manali Airport (Bhuntar)",
+                "persona_match": ["backpacking", "nature", "trekking"],
+                "savings_rationale": "Fastest gateway into Parvati Valley canyon roads.",
+                "default": False
+            },
+            {
+                "id": "dharamshala_bir",
+                "name": "Dharamshala & Bir Billing",
+                "vibe": "Tibetan Monasteries, Peace & World #2 Paragliding",
+                "airport_iata": "DHM",
+                "airport_name": "Kangra Airport, Gaggal",
+                "persona_match": ["adventure", "spiritual", "peace"],
+                "savings_rationale": "Direct landing into Kangra valley 20 mins from Dalai Lama temple.",
+                "default": False
+            }
+        ]
+    },
+    "kerala": {
+        "region_name": "Kerala",
+        "sub_regions": [
+            {
+                "id": "munnar_hills",
+                "name": "Munnar Tea Highlands",
+                "vibe": "Rolling Green Tea Mist, Eravikulam Tahr & Waterfalls",
+                "airport_iata": "COK",
+                "airport_name": "Cochin Int'l Airport, Nedumbassery",
+                "persona_match": ["nature", "relaxation", "family"],
+                "savings_rationale": "Direct 3.5 hr scenic highway drive through hill slopes.",
+                "default": True
+            },
+            {
+                "id": "alleppey_backwaters",
+                "name": "Alleppey (Alappuzha)",
+                "vibe": "Overnight Houseboats & Serene Palm-Fringed Backwaters",
+                "airport_iata": "COK",
+                "airport_name": "Cochin Int'l Airport",
+                "persona_match": ["family", "luxury", "relaxation"],
+                "savings_rationale": "Direct 1.5 hr coastal highway connection to Punnamada boat jetty.",
+                "default": False
+            },
+            {
+                "id": "varkala_cliff",
+                "name": "Varkala Cliff & Kovalam",
+                "vibe": "Dramatic Red Cliffs, Sunset Cafes & Ayurvedic Spas",
+                "airport_iata": "TRV",
+                "airport_name": "Thiruvananthapuram Int'l Airport",
+                "persona_match": ["youth", "backpacking", "beach", "relaxation"],
+                "savings_rationale": "Only 45 minutes from Trivandrum International Airport.",
+                "default": False
+            }
+        ]
+    },
+    "rajasthan": {
+        "region_name": "Rajasthan",
+        "sub_regions": [
+            {
+                "id": "jaipur_pink",
+                "name": "Jaipur (Pink City)",
+                "vibe": "Royal Amber Fort, Hawa Mahal & Vibrant Bazaars",
+                "airport_iata": "JAI",
+                "airport_name": "Jaipur Int'l Airport, Sanganer",
+                "persona_match": ["heritage", "shopping", "family"],
+                "savings_rationale": "Centrally connected to the Golden Triangle heritage circuit.",
+                "default": True
+            },
+            {
+                "id": "udaipur_lakes",
+                "name": "Udaipur (City of Lakes)",
+                "vibe": "Romantic Lake Pichola Palaces & Jag Mandir",
+                "airport_iata": "UDR",
+                "airport_name": "Maharana Pratap Airport, Dabok",
+                "persona_match": ["luxury", "romance", "heritage", "relaxation"],
+                "savings_rationale": "Direct 25-minute scenic highway transfer to city lake precinct.",
+                "default": False
+            },
+            {
+                "id": "jaisalmer_dunes",
+                "name": "Jaisalmer (Golden City)",
+                "vibe": "Sam Sand Dunes, Desert Camp & Living Golden Fort",
+                "airport_iata": "JSA",
+                "airport_name": "Jaisalmer Airport",
+                "persona_match": ["adventure", "heritage", "camp"],
+                "savings_rationale": "Avoids 5-hour desert highway drive from Jodhpur.",
+                "default": False
+            }
+        ]
+    }
+}
+
+def get_sub_region_recommendation(destination_query: str, user_interests: List[str] = None) -> Optional[Dict]:
+    """Resolves micro-vibe sub-regions and proactively picks the best matching zone based on user persona/interests."""
+    if not destination_query:
+        return None
+    q = destination_query.strip().lower()
+    
+    matched_key = None
+    for key in SUB_REGION_VIBE_REGISTRY:
+        if key in q or q in key:
+            matched_key = key
+            break
+            
+    if not matched_key:
+        return None
+        
+    region_info = SUB_REGION_VIBE_REGISTRY[matched_key]
+    sub_regions = region_info["sub_regions"]
+    
+    # Calculate interest match score
+    user_int_set = set([i.lower() for i in (user_interests or [])])
+    best_sub = sub_regions[0]
+    max_matches = -1
+    
+    for sub in sub_regions:
+        match_count = sum(1 for p in sub["persona_match"] if any(p in u or u in p for u in user_int_set))
+        if match_count > max_matches or (match_count == max_matches and sub.get("default", False)):
+            max_matches = match_count
+            best_sub = sub
+            
+    return {
+        "region_name": region_info["region_name"],
+        "recommended_sub_region": best_sub,
+        "all_sub_regions": sub_regions,
+        "ai_rationale": f"Based on your profile, AI selected {best_sub['name']} ({best_sub['vibe']}) connected to {best_sub['airport_name']}."
+    }
+
 AIRPORT_MAP_BY_CITY = {a["city"].lower(): a for a in PAN_INDIA_AIRPORTS}
 
 def find_nearest_airport_hub(city_name: str, lat: float = None, lng: float = None) -> Dict:

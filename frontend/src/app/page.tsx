@@ -249,6 +249,8 @@ export default function Home() {
   const [destSuggestions, setDestSuggestions] = useState<any[]>([]);
   const [didYouMean, setDidYouMean] = useState<string | null>(null);
   const [unsupportedToast, setUnsupportedToast] = useState<string | null>(null);
+  const [vibeData, setVibeData] = useState<any>(null);
+  const [selectedSubRegion, setSelectedSubRegion] = useState<any>(null);
   const [agentLogs, setAgentLogs] = useState<any[]>([]);
 
   const handleOriginChange = async (val: string) => {
@@ -288,6 +290,7 @@ export default function Home() {
       setDestSuggestions([]);
     }
   };
+
   const [depDate, setDepDate] = useState("2026-09-10");
   const [retDate, setRetDate] = useState("2026-09-13");
   const [travelers, setTravelers] = useState(2);
@@ -424,6 +427,33 @@ export default function Home() {
     }
     setLastFingerprint(tripFingerprint);
   }, [tripFingerprint]);
+
+  // Auto-fetch Sub-region Vibe recommendations when destination or interests change
+  useEffect(() => {
+    if (!destination || destination.trim().length < 3) {
+      setVibeData(null);
+      setSelectedSubRegion(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/api/destinations/vibes?destination=${encodeURIComponent(destination)}&interests=${encodeURIComponent(interests.join(","))}`);
+        if (res.status === 200) {
+          const json = await res.json();
+          if (json.data) {
+            setVibeData(json.data);
+            setSelectedSubRegion(json.data.recommended_sub_region);
+          } else {
+            setVibeData(null);
+            setSelectedSubRegion(null);
+          }
+        }
+      } catch (err) {
+        setVibeData(null);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [destination, interests]);
 
   const handleInterestToggle = (id: string) => {
     if (interests.includes(id)) {
@@ -977,6 +1007,64 @@ export default function Home() {
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* 🤖 Agentic AI Sub-Region & Multi-Airport Vibe Recommender */}
+                {vibeData && (
+                  <div className="mt-2.5 p-3 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-blue-200 rounded-xl space-y-2 animate-fade-in shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5 text-xs font-extrabold text-blue-900">
+                          <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+                          <span>AI Smart Pick: {selectedSubRegion?.name || vibeData.recommended_sub_region.name}</span>
+                        </div>
+                        <p className="text-[10px] text-blue-700 font-medium">
+                          {selectedSubRegion?.savings_rationale || vibeData.recommended_sub_region.savings_rationale}
+                        </p>
+                      </div>
+                      <span className="text-[9px] font-extrabold text-blue-800 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                        ✈️ {selectedSubRegion?.airport_iata || vibeData.recommended_sub_region.airport_iata}
+                      </span>
+                    </div>
+
+                    {/* 1-Click Interactive Switch Chips */}
+                    <div className="pt-1.5 border-t border-blue-200/60">
+                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        Choose your vibe (1-Click Switch):
+                      </span>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {vibeData.all_sub_regions.map((sub: any) => {
+                          const isCurrent = (selectedSubRegion?.id || vibeData.recommended_sub_region.id) === sub.id;
+                          return (
+                            <button
+                              key={sub.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedSubRegion(sub);
+                                setDestination(sub.name);
+                                setDestSuggestions([]);
+                              }}
+                              className={`p-2 text-left rounded-lg text-xs transition-all flex items-center justify-between border ${
+                                isCurrent
+                                  ? "bg-white border-blue-500 shadow-sm text-blue-950 font-bold ring-1 ring-blue-400"
+                                  : "bg-white/70 border-slate-200 hover:bg-white text-slate-700"
+                              }`}
+                            >
+                              <div className="space-y-0.5">
+                                <span className="font-extrabold text-[11px] flex items-center gap-1">
+                                  {isCurrent ? "✓ " : ""}{sub.name}
+                                </span>
+                                <span className="text-[9px] text-slate-500 block">{sub.vibe}</span>
+                              </div>
+                              <span className="text-[9px] font-extrabold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                                {sub.airport_iata}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
