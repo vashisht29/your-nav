@@ -362,6 +362,17 @@ export default function Home() {
   const [emergencyServices, setEmergencyServices] = useState<any[]>([]);
   const [showAgentTrace, setShowAgentTrace] = useState(true);
 
+  // 🛡️ Kavach AI Guardian State
+  const [showGuardianModal, setShowGuardianModal] = useState(false);
+  const [guardianAlert, setGuardianAlert] = useState<any>(null);
+  const [guardianCountdown, setGuardianCountdown] = useState<number>(60);
+  const [guardianSimRunning, setGuardianSimRunning] = useState(false);
+  const [guardianSimStatus, setGuardianSimStatus] = useState<string>("");
+  const [guardianContacts, setGuardianContacts] = useState<any[]>([
+    { name: "Papa / Primary Guardian", phone: "+91-9876543210", relationship: "Father" },
+    { name: "Family Member / Friend", phone: "+91-9812345678", relationship: "Travel Buddy" }
+  ]);
+
   // Caching & Persistence hydration (Next.js SSR safe)
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -626,6 +637,121 @@ ${daysSummary}
       window.print();
     }
   };
+
+    // 🔊 Pure Web Audio API Synthesizer for Guardian Warning Beeps & Sirens
+  const playGuardianSound = (type: "beep" | "siren") => {
+    try {
+      if (typeof window === "undefined") return;
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === "beep") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      } else {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(880, ctx.currentTime + 0.25);
+        osc.frequency.linearRampToValueAtTime(440, ctx.currentTime + 0.5);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.75);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.8);
+      }
+    } catch (e) {
+      console.log("Audio alert suppressed", e);
+    }
+  };
+
+  // Run Guardian Telemetry Evaluation
+  const runGuardianEvaluation = async (scenario: "traffic_jam" | "isolated_stop" | "timeout_escalation") => {
+    setGuardianSimRunning(true);
+    try {
+      let speed = 0.0;
+      let stationaryMins = 5.0;
+      let trafficIndex = 0.15; // default clear
+
+      if (scenario === "traffic_jam") {
+        speed = 0.0;
+        stationaryMins = 8.0;
+        trafficIndex = 0.85; // 85% heavy traffic
+      } else if (scenario === "timeout_escalation") {
+        speed = 0.0;
+        stationaryMins = 9.5;
+        trafficIndex = 0.10; // isolated
+      }
+
+      const res = await fetch("http://localhost:8000/api/guardian/telemetry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: 28.9845,
+          lng: 77.7064,
+          speed_kmh: speed,
+          stationary_duration_mins: stationaryMins,
+          traffic_congestion_index: trafficIndex,
+          destination: destination || "Haridwar",
+          transit_mode: transportMode || "car"
+        })
+      });
+
+      const data = await res.json();
+      const evalRes = data.guardian_evaluation;
+
+      if (evalRes.is_alert_triggered) {
+        setGuardianAlert(evalRes);
+        setGuardianCountdown(evalRes.grace_seconds || 60);
+        playGuardianSound(evalRes.beep_intensity === "urgent_siren" ? "siren" : "beep");
+      } else {
+        setGuardianAlert(null);
+        setGuardianSimStatus(evalRes.message);
+      }
+    } catch (e) {
+      console.error("Guardian telemetry failed", e);
+    } finally {
+      setGuardianSimRunning(false);
+    }
+  };
+
+  // Countdown timer effect for Guardian Alert
+  useEffect(() => {
+    let timer: any = null;
+    if (guardianAlert && guardianAlert.is_alert_triggered && guardianCountdown > 0) {
+      timer = setInterval(() => {
+        setGuardianCountdown((prev) => {
+          if (prev <= 1) {
+            // Escalate to Stage 3 when countdown expires
+            clearInterval(timer);
+            setGuardianAlert((prevAlert: any) => ({
+              ...prevAlert,
+              stage: "STAGE_3_AUTO_ESCALATION",
+              severity: "CRITICAL",
+              headline: "SOS ESCALATED: Emergency Beacon Dispatched!",
+              subtext: "Traveler was unresponsive during check-in windows. Emergency beacon sent to family and 112 authorities."
+            }));
+            playGuardianSound("siren");
+            return 0;
+          }
+          if (prev % 5 === 0) {
+            playGuardianSound(prev < 20 ? "siren" : "beep");
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [guardianAlert, guardianCountdown]);
 
   const triggerPayment = () => {
     setPayRef(`PAY_SIM_${Math.floor(100000 + Math.random() * 900000)}`);
@@ -962,6 +1088,14 @@ ${daysSummary}
           >
             <Languages className="w-3.5 h-3.5" />
             {lang === "en" ? "Switch to Hindi" : "English"}
+          </button>
+
+          <button
+            onClick={() => setShowGuardianModal(true)}
+            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-black flex items-center gap-1.5 shadow transition-all"
+          >
+            <span className="animate-pulse">🛡️</span>
+            <span>Kavach AI Guardian</span>
           </button>
 
           <button
@@ -3177,6 +3311,245 @@ ${daysSummary}
             >
               Select This Hotel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🛡️ Kavach AI Guardian & Telemetry Anomaly Modal */}
+      {showGuardianModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 relative space-y-4 shadow-2xl border border-amber-200">
+            <button
+              onClick={() => setShowGuardianModal(false)}
+              className="absolute right-4 top-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Guardian Header */}
+            <div className="border-b pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2.5 bg-amber-500 text-white rounded-2xl text-xl shadow-md">
+                  🛡️
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 leading-tight flex items-center gap-2">
+                    Kavach AI Safety Guardian
+                    <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                      Active Protection
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                    Autonomous Stop & Crash Anomaly Detection • Traffic Congestion Aware
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Telemetry Status Box */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="font-extrabold text-slate-700 uppercase tracking-wider text-[10px]">
+                  Live Route Telemetry Status:
+                </span>
+                <span className="text-[9px] font-bold text-slate-500 bg-white border px-2 py-0.5 rounded-full">
+                  GPS Active (28.98° N, 77.70° E)
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                <div className="p-2 bg-white rounded-xl border">
+                  <span className="text-[9px] text-slate-400 font-bold block">ROAD STATUS</span>
+                  <span className="text-xs font-black text-emerald-600">Open Highway</span>
+                </div>
+                <div className="p-2 bg-white rounded-xl border">
+                  <span className="text-[9px] text-slate-400 font-bold block">NEAREST POLICE</span>
+                  <span className="text-xs font-black text-blue-600">Meerut Patrol (112)</span>
+                </div>
+                <div className="p-2 bg-white rounded-xl border">
+                  <span className="text-[9px] text-slate-400 font-bold block">HOSPITAL (2.4 km)</span>
+                  <span className="text-xs font-black text-rose-600">Subharti Medical</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 🧪 Interactive Guardian AI Simulator */}
+            <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                  🧪 Test Agentic AI Intelligence Live:
+                </span>
+                <span className="text-[8px] font-black bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+                  Live Engine
+                </span>
+              </div>
+              <p className="text-[10px] text-amber-900/80 font-medium leading-relaxed">
+                Test how the Agentic AI differentiates between a <strong>Heavy Traffic Jam / Toll Plaza</strong> (safe, no false alerts) vs an <strong>Unexpected Stop on an Isolated Highway</strong> (beeps, counts down, and alerts loved ones).
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                {/* Scenario 1: Traffic Jam */}
+                <button
+                  type="button"
+                  disabled={guardianSimRunning}
+                  onClick={() => runGuardianEvaluation("traffic_jam")}
+                  className="p-2.5 bg-white hover:bg-emerald-50/80 border border-emerald-300 text-emerald-900 font-extrabold rounded-xl text-[10.5px] text-left shadow-xs transition-all active:scale-98 flex items-center gap-2"
+                >
+                  <span className="text-base">🚗</span>
+                  <div>
+                    <span className="block font-black text-slate-900">1. Test Traffic Jam (8 mins stop)</span>
+                    <span className="text-[9px] text-emerald-700 font-medium">Traffic index 85% • Safe hold</span>
+                  </div>
+                </button>
+
+                {/* Scenario 2: Unexpected Stop */}
+                <button
+                  type="button"
+                  disabled={guardianSimRunning}
+                  onClick={() => runGuardianEvaluation("isolated_stop")}
+                  className="p-2.5 bg-white hover:bg-rose-50/80 border border-rose-300 text-rose-900 font-extrabold rounded-xl text-[10.5px] text-left shadow-xs transition-all active:scale-98 flex items-center gap-2"
+                >
+                  <span className="text-base">🚨</span>
+                  <div>
+                    <span className="block font-black text-slate-900">2. Test Isolated Stop (5 mins)</span>
+                    <span className="text-[9px] text-rose-700 font-medium">Clear road • Beep check-in</span>
+                  </div>
+                </button>
+              </div>
+
+              {guardianSimStatus && (
+                <div className="p-2.5 bg-white rounded-xl border border-emerald-200 text-[10px] text-emerald-900 font-semibold leading-relaxed animate-fade-in flex items-start gap-2">
+                  <span className="text-sm">🛡️</span>
+                  <span>{guardianSimStatus}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Emergency Contacts List */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">
+                  Configured Emergency Contacts (Loved Ones):
+                </span>
+                <span className="text-[9px] font-bold text-slate-400">Auto-Escalation Target</span>
+              </div>
+              <div className="space-y-1.5">
+                {guardianContacts.map((contact: any, cIdx: number) => (
+                  <div key={cIdx} className="p-2 bg-slate-50 border rounded-xl flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">👤</span>
+                      <div>
+                        <span className="font-extrabold text-slate-800 text-[11px] block">{contact.name}</span>
+                        <span className="text-[9px] text-slate-400">{contact.relationship} • {contact.phone}</span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      ✓ WhatsApp & SMS Ready
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🚨 Active Guardian Audio & Countdown Check-in Alert Modal */}
+      {guardianAlert && (
+        <div className="fixed inset-0 bg-red-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 relative space-y-4 shadow-2xl border-2 border-red-500 text-center">
+            {/* Warning Pulsing Icon */}
+            <div className="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-3xl mx-auto animate-bounce shadow-md">
+              {guardianAlert.stage === "STAGE_3_AUTO_ESCALATION" ? "📡" : "⚠️"}
+            </div>
+
+            <div>
+              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1 ${
+                guardianAlert.stage === "STAGE_3_AUTO_ESCALATION" ? "bg-red-600 text-white animate-pulse" : "bg-orange-100 text-orange-800"
+              }`}>
+                {guardianAlert.stage.replace(/_/g, " ")}
+              </span>
+              <h3 className="text-base font-black text-slate-900 leading-tight">
+                {guardianAlert.headline}
+              </h3>
+              <p className="text-xs text-slate-600 font-medium mt-1 leading-relaxed">
+                {guardianAlert.subtext}
+              </p>
+            </div>
+
+            {/* Countdown Ring if in Stage 1 or 2 */}
+            {guardianAlert.stage !== "STAGE_3_AUTO_ESCALATION" && (
+              <div className="p-3 bg-red-50 rounded-2xl border border-red-200 space-y-1">
+                <div className="text-2xl font-black text-red-600">
+                  ⏱️ {guardianCountdown}s
+                </div>
+                <span className="text-[10px] font-bold text-red-800 block">
+                  Confirm safety before automated escalation to emergency contacts
+                </span>
+              </div>
+            )}
+
+            {/* Stage 3 Escalation Dispatched View */}
+            {guardianAlert.stage === "STAGE_3_AUTO_ESCALATION" && guardianAlert.dispatched_beacon && (
+              <div className="p-3 bg-red-50/90 border border-red-300 rounded-2xl space-y-2 text-left text-xs">
+                <span className="text-[10px] font-black text-red-900 uppercase tracking-wider block">
+                  🚨 Transmitted SOS Beacon to Loved Ones:
+                </span>
+                <p className="text-[10px] text-slate-700 bg-white p-2.5 rounded-xl border border-red-200 font-mono leading-relaxed">
+                  {guardianAlert.dispatched_beacon.message}
+                </p>
+                <div className="flex gap-2 pt-1">
+                  <a
+                    href={guardianAlert.dispatched_beacon.whatsapp_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black text-center shadow-sm"
+                  >
+                    Open WhatsApp Broadcast
+                  </a>
+                  <a
+                    href="tel:112"
+                    className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black text-center shadow-sm"
+                  >
+                    Call 112 Police
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setGuardianAlert(null);
+                  setGuardianCountdown(60);
+                  setGuardianSimStatus("✓ User confirmed safety. Kavach Guardian returned to background monitoring.");
+                }}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-xs shadow-md transition-all active:scale-98"
+              >
+                🟢 I Am OK (False Alarm / Disarm Alert)
+              </button>
+
+              {guardianAlert.stage !== "STAGE_3_AUTO_ESCALATION" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGuardianAlert({
+                      ...guardianAlert,
+                      stage: "STAGE_3_AUTO_ESCALATION",
+                      severity: "CRITICAL",
+                      headline: "SOS ESCALATED: Emergency Beacon Dispatched!",
+                      subtext: "User triggered immediate SOS. Beacon dispatched to loved ones and authorities."
+                    });
+                    playGuardianSound("siren");
+                  }}
+                  className="w-full py-2 bg-slate-100 hover:bg-red-50 text-red-600 border border-red-200 font-bold rounded-2xl text-xs transition-all"
+                >
+                  🔴 I Need Immediate Help (Escalate Now)
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

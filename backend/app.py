@@ -567,11 +567,47 @@ def request_unsupported_location(req: RequestLocationBody):
 
 from flight_engine import get_sub_region_recommendation
 
-@app.get("/api/destinations/vibes")
-def get_destination_vibes(destination: str = "", interests: Optional[str] = ""):
-    int_list = [i.strip() for i in interests.split(",") if i.strip()] if interests else []
-    res = get_sub_region_recommendation(destination, int_list)
-    return {"status": "success", "data": res}
+from guardian_agent import guardian_agent
+
+class GuardianTelemetryRequest(BaseModel):
+    lat: float = 28.9845
+    lng: float = 77.7064
+    speed_kmh: float = 0.0
+    stationary_duration_mins: float = 5.0
+    traffic_congestion_index: float = 0.15
+    destination: Optional[str] = "Haridwar"
+    transit_mode: Optional[str] = "car"
+    transit_details: Optional[str] = ""
+
+class GuardianEmergencyContact(BaseModel):
+    name: str
+    phone: str
+    relationship: str
+    notify_sms: bool = True
+    notify_whatsapp: bool = True
+
+@app.post("/api/guardian/telemetry")
+def evaluate_guardian_telemetry(req: GuardianTelemetryRequest):
+    result = guardian_agent.evaluate_safety_telemetry(
+        lat=req.lat,
+        lng=req.lng,
+        speed_kmh=req.speed_kmh,
+        stationary_duration_mins=req.stationary_duration_mins,
+        traffic_congestion_index=req.traffic_congestion_index,
+        destination=req.destination,
+        transit_mode=req.transit_mode,
+        transit_details=req.transit_details
+    )
+    return {"status": "success", "guardian_evaluation": result}
+
+@app.get("/api/guardian/contacts")
+def get_guardian_contacts():
+    return {"status": "success", "contacts": guardian_agent.emergency_contacts}
+
+@app.post("/api/guardian/contacts")
+def add_guardian_contact(contact: GuardianEmergencyContact):
+    guardian_agent.emergency_contacts.append(contact.dict())
+    return {"status": "success", "contacts": guardian_agent.emergency_contacts}
 
 if __name__ == "__main__":
     import uvicorn
