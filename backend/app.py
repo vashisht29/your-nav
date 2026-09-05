@@ -490,21 +490,32 @@ def plan_trip(req: PlanRequest):
     }
 
 class SOSQuery(BaseModel):
-    lat: float
-    lng: float
-    type: str
+    lat: Optional[float] = 28.6139
+    lng: Optional[float] = 77.2090
+    type: Optional[str] = "medical"
+    destination: Optional[str] = "Haridwar"
+
+from emergency_engine import get_destination_emergency_intel
 
 @app.post("/api/sos")
 def get_emergency_services(req: SOSQuery):
-    services = fetch_nearby_emergency_services(req.lat, req.lng, req.type)
+    dest_name = req.destination or "India"
+    sos_intel = get_destination_emergency_intel(dest_name, req.lat, req.lng)
+    osm_services = fetch_nearby_emergency_services(req.lat or 28.6139, req.lng or 77.2090, req.type or "medical")
+    
     return {
+        "status": "active",
         "emergency_number": "112",
-        "services": services,
-        "instructions": [
-            "Maintain safety boundaries and indicators.",
-            "Contact assistance numbers listed on map checkpoints.",
-            "Emergency alerts broadcasted to primary caretakers."
-        ]
+        "destination": sos_intel["destination"],
+        "region": sos_intel["region"],
+        "national_helplines": sos_intel["national_helplines"],
+        "sdrf_mountain_rescue": sos_intel["sdrf_mountain_rescue"],
+        "trauma_centers": sos_intel["trauma_centers"],
+        "local_police": sos_intel["local_police"],
+        "tourist_police": sos_intel["tourist_police"],
+        "gps_beacon": sos_intel["gps_beacon"],
+        "first_aid_protocols": sos_intel["first_aid_protocols"],
+        "services": osm_services
     }
 
 @app.post("/api/webhooks/payment")

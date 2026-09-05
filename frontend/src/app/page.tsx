@@ -358,6 +358,7 @@ export default function Home() {
   const [showSOS, setShowSOS] = useState(false);
   const [sosType, setSosType] = useState("");
   const [sosLoading, setSosLoading] = useState(false);
+  const [sosData, setSosData] = useState<any>(null);
   const [emergencyServices, setEmergencyServices] = useState<any[]>([]);
   const [showAgentTrace, setShowAgentTrace] = useState(true);
 
@@ -576,17 +577,53 @@ export default function Home() {
         body: JSON.stringify({
           lat: 28.6139,
           lng: 77.2090,
-          type: type
+          type: type,
+          destination: destination || "Haridwar"
         })
       });
       if (res.status === 200) {
         const data = await res.json();
+        setSosData(data);
         setEmergencyServices(data.services || []);
       }
     } catch (e) {
       console.error("SOS fetch failed", e);
     } finally {
       setSosLoading(false);
+    }
+  };
+
+    const shareToWhatsApp = () => {
+    if (!itinerary) return;
+    const daysSummary = (itinerary.days || [])
+      .slice(0, 3)
+      .map((d: any) => `• Day ${d.day}: ${d.title || d.theme || "Sightseeing"}`)
+      .join("\n");
+
+    const msg = `🌟 *My Confirmed Travel Itinerary with YourNav*
+📍 Route: ${origin} ➔ ${destination} (${depDate} to ${retDate})
+👥 Travelers: ${travelers} People | Total Cost: ₹${itinerary.total_cost_inr || budget}
+
+${transportMode === "flight" ? "✈️" : transportMode === "train" ? "🚆" : "🚌"} *Confirmed Transit:*
+• ${selectedTransit?.airline || selectedTransit?.train_name || selectedTransit?.operator || transportMode} (${selectedTransit?.flight_number || selectedTransit?.train_number || selectedTransit?.travel_class || "Standard"})
+• Timing: ${selectedTransit?.departure_time || "Morning"} ➔ ${selectedTransit?.arrival_time || "Evening"}
+${selectedTransit?.ground_transfer_intelligence?.has_ground_transfer ? `• Onward Ground Transfer: ${selectedTransit.selected_ground_transfer || selectedTransit.ground_transfer_intelligence.options[0].title}` : ""}
+
+🏨 *Confirmed Stay:*
+• ${selectedHotel?.name || "Hotel"} (${selectedHotel?.selected_room || "Standard Room"})
+• Meals: ${selectedHotel?.meals_included || "Breakfast Included"}
+
+📅 *Day-by-Day Highlights:*
+${daysSummary}
+
+🚨 *24x7 Emergency Lifeline:* National 112 | Tourist Helpline 1363`;
+
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const printVoucher = () => {
+    if (typeof window !== "undefined") {
+      window.print();
     }
   };
 
@@ -2124,9 +2161,27 @@ export default function Home() {
                 </div>
               )}
 
+              {/* 📲 1-Click Export & Share Vouchers */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={shareToWhatsApp}
+                  className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                >
+                  <span>💬</span> WhatsApp Itinerary
+                </button>
+                <button
+                  type="button"
+                  onClick={printVoucher}
+                  className="py-2.5 px-3 bg-slate-900 hover:bg-black text-white font-extrabold rounded-xl text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                >
+                  <span>🖨️</span> Save PDF / Print
+                </button>
+              </div>
+
               <button
                 onClick={() => setStep(4)}
-                className="w-full py-2 border rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50"
+                className="w-full py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
               >
                 Modify Selections & Re-optimize
               </button>
@@ -3126,65 +3181,222 @@ export default function Home() {
         </div>
       )}
 
-      {/* SOS Active Modal */}
+      {/* 🚨 Lifesaving Emergency SOS Active Modal Hub */}
       {showSOS && (
-        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 relative space-y-4">
-            <button onClick={() => setShowSOS(false)} className="absolute right-4 top-4 p-1 hover:bg-slate-100 rounded-full">
-              <X className="w-5 h-5 text-slate-400" />
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 relative space-y-4 shadow-2xl border border-red-200">
+            <button
+              onClick={() => setShowSOS(false)}
+              className="absolute right-4 top-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-all"
+            >
+              <X className="w-5 h-5" />
             </button>
-            <div>
-              <h3 className="text-md font-extrabold text-slate-900 flex items-center gap-1.5">
-                <ShieldAlert className="text-red-600 w-5 h-5 animate-pulse" /> {t.sosTitle}
-              </h3>
-              <p className="text-[10px] text-slate-400 mt-1">{t.sosSub}</p>
+
+            {/* Emergency Header */}
+            <div className="border-b border-red-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2.5 bg-red-600 text-white rounded-2xl text-xl animate-pulse shadow-md">
+                  🚨
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 leading-tight flex items-center gap-2">
+                    Emergency Lifeline SOS Hub
+                    <span className="text-[9px] font-extrabold bg-red-100 text-red-700 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      24x7 Live
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                    Active Location: <strong className="text-slate-800">{destination || "Haridwar"}</strong> {sosData?.region && `• ${sosData.region}`}
+                  </p>
+                </div>
+              </div>
             </div>
 
+            {/* 1-Click Instant National Emergency Dialers */}
             <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => handleSOS("breakdown")}
-                className={`p-3 border rounded-xl flex flex-col items-center gap-1 text-[9px] font-bold ${
-                  sosType === "breakdown" ? "bg-red-50 border-red-500 text-red-700" : "bg-white text-slate-600"
-                }`}
+              <a
+                href="tel:112"
+                className="p-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl flex flex-col items-center justify-center text-center shadow-md transition-all active:scale-95"
               >
-                <Wrench className="w-4 h-4" /> {t.breakdownOpt}
-              </button>
-              <button
-                onClick={() => handleSOS("medical")}
-                className={`p-3 border rounded-xl flex flex-col items-center gap-1 text-[9px] font-bold ${
-                  sosType === "medical" ? "bg-red-50 border-red-500 text-red-700" : "bg-white text-slate-600"
-                }`}
+                <span className="text-lg mb-0.5">🚨</span>
+                <span className="text-xs font-black">Call 112</span>
+                <span className="text-[8px] font-bold text-red-100 uppercase">Police / Fire / EMS</span>
+              </a>
+              <a
+                href="tel:108"
+                className="p-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl flex flex-col items-center justify-center text-center shadow-md transition-all active:scale-95"
               >
-                <Activity className="w-4 h-4" /> {t.medicalOpt}
-              </button>
-              <button
-                onClick={() => handleSOS("police")}
-                className={`p-3 border rounded-xl flex flex-col items-center gap-1 text-[9px] font-bold ${
-                  sosType === "police" ? "bg-red-50 border-red-500 text-red-700" : "bg-white text-slate-600"
-                }`}
+                <span className="text-lg mb-0.5">🚑</span>
+                <span className="text-xs font-black">Call 108</span>
+                <span className="text-[8px] font-bold text-rose-100 uppercase">Highway Ambulance</span>
+              </a>
+              <a
+                href="tel:1363"
+                className="p-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl flex flex-col items-center justify-center text-center shadow-md transition-all active:scale-95"
               >
-                <AlertCircle className="w-4 h-4" /> {t.policeOpt}
-              </button>
+                <span className="text-lg mb-0.5">👮</span>
+                <span className="text-xs font-black">Call 1363</span>
+                <span className="text-[8px] font-bold text-amber-100 uppercase">Tourist Police</span>
+              </a>
+            </div>
+
+            {/* 📡 1-Click Live GPS WhatsApp / SMS Beacon */}
+            <div className="p-3.5 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-red-950 flex items-center gap-1.5">
+                  📡 1-Click Live GPS Emergency Beacon
+                </span>
+                <span className="text-[8px] font-extrabold bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">
+                  Emergency Dispatch
+                </span>
+              </div>
+              <p className="text-[9.5px] text-red-900 font-medium leading-relaxed">
+                Sends your live coordinates and destination alert to your emergency contacts or police via WhatsApp/SMS instantly.
+              </p>
+              <div className="flex gap-2">
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                    `🚨 EMERGENCY SOS! I need urgent assistance in ${destination || "India"}. Please alert 112 / 108 emergency teams immediately.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-extrabold text-center shadow-sm flex items-center justify-center gap-1.5 transition-all"
+                >
+                  💬 Send WhatsApp SOS
+                </a>
+                <a
+                  href={`sms:112?body=${encodeURIComponent(
+                    `🚨 EMERGENCY SOS! Urgent assistance needed in ${destination || "India"}.`
+                  )}`}
+                  className="flex-1 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-[10px] font-extrabold text-center shadow-sm flex items-center justify-center gap-1.5 transition-all"
+                >
+                  📱 Send SMS Beacon
+                </a>
+              </div>
+            </div>
+
+            {/* Category Filter Selector */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider block">
+                Select Specific Emergency Situation:
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleSOS("medical")}
+                  className={`p-2.5 border rounded-2xl flex flex-col items-center gap-1 text-[10px] font-black transition-all ${
+                    sosType === "medical" ? "bg-red-50 border-red-500 text-red-700 shadow-sm ring-1 ring-red-400" : "bg-white text-slate-700 border-slate-200"
+                  }`}
+                >
+                  <Activity className="w-4 h-4 text-red-600" /> Medical / Hospital
+                </button>
+                <button
+                  onClick={() => handleSOS("police")}
+                  className={`p-2.5 border rounded-2xl flex flex-col items-center gap-1 text-[10px] font-black transition-all ${
+                    sosType === "police" ? "bg-red-50 border-red-500 text-red-700 shadow-sm ring-1 ring-red-400" : "bg-white text-slate-700 border-slate-200"
+                  }`}
+                >
+                  <AlertCircle className="w-4 h-4 text-blue-600" /> Police / Safety
+                </button>
+                <button
+                  onClick={() => handleSOS("breakdown")}
+                  className={`p-2.5 border rounded-2xl flex flex-col items-center gap-1 text-[10px] font-black transition-all ${
+                    sosType === "breakdown" ? "bg-red-50 border-red-500 text-red-700 shadow-sm ring-1 ring-red-400" : "bg-white text-slate-700 border-slate-200"
+                  }`}
+                >
+                  <Wrench className="w-4 h-4 text-amber-600" /> Vehicle Breakdown
+                </button>
+              </div>
             </div>
 
             {sosLoading && (
-              <div className="py-4 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-red-600" /></div>
+              <div className="py-6 flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+                <span className="text-[10px] font-bold text-slate-500">Contacting Emergency Response Dispatch...</span>
+              </div>
             )}
 
-            {!sosLoading && sosType && (
-              <div className="space-y-2 border-t pt-3 text-xs">
-                <span className="font-bold text-slate-700 uppercase tracking-wide">Nearby help found:</span>
-                <div className="max-h-[140px] overflow-y-auto space-y-1">
-                  {emergencyServices.map((serv, idx) => (
-                    <div key={idx} className="p-2 bg-red-50/50 border rounded-xl flex justify-between items-center">
-                      <div>
-                        <span className="font-bold text-slate-800 block">{serv.name}</span>
-                        <span className="text-[9px] text-slate-400 capitalize">{serv.type}</span>
-                      </div>
-                      <span className="text-[10px] font-extrabold text-red-700">{serv.distance_km} km</span>
+            {/* Verified Trauma Centers & SDRF Section */}
+            {!sosLoading && sosData && (
+              <div className="space-y-3 pt-1 text-xs">
+                {/* 🏔️ SDRF Mountain & Disaster Response */}
+                {sosData.sdrf_mountain_rescue && (
+                  <div className="p-3 bg-amber-50/90 border border-amber-300 rounded-2xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-amber-950 text-[11px] flex items-center gap-1">
+                        🏔️ {sosData.sdrf_mountain_rescue.agency}
+                      </span>
+                      <a
+                        href={`tel:${sosData.sdrf_mountain_rescue.control_room}`}
+                        className="text-[9px] font-black bg-amber-600 text-white px-2 py-0.5 rounded-full hover:bg-amber-700 transition-all"
+                      >
+                        📞 Call SDRF
+                      </a>
                     </div>
-                  ))}
-                </div>
+                    <p className="text-[9.5px] text-amber-900 font-medium">
+                      <strong>Specialty:</strong> {sosData.sdrf_mountain_rescue.specialty}
+                    </p>
+                    <div className="flex justify-between text-[9px] text-amber-800 font-bold border-t border-amber-200/80 pt-1">
+                      <span>Control Room: {sosData.sdrf_mountain_rescue.control_room}</span>
+                      <span>State Toll-Free: {sosData.sdrf_mountain_rescue.state_toll_free}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 🏥 Verified Apex Trauma Centers */}
+                {sosData.trauma_centers && sosData.trauma_centers.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block">
+                      🏥 Verified Level-1 Trauma Centers & Emergency Casualty:
+                    </span>
+                    <div className="space-y-2">
+                      {sosData.trauma_centers.map((tc: any, tIdx: number) => (
+                        <div key={tIdx} className="p-3 bg-white border border-slate-200 rounded-2xl space-y-1.5 shadow-2xs">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <span className="font-black text-slate-900 text-xs flex items-center gap-1">
+                                {tc.name}
+                                {tc.is_apex && (
+                                  <span className="text-[8px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded">
+                                    APEX LEVEL-1
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-[9.5px] text-slate-500 font-semibold block mt-0.5">
+                                📍 {tc.address} • 🚗 {tc.distance}
+                              </span>
+                            </div>
+                            <a
+                              href={`tel:${tc.phone}`}
+                              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[10px] font-extrabold shadow-sm flex items-center gap-1 transition-all"
+                            >
+                              📞 Call
+                            </a>
+                          </div>
+                          <p className="text-[8.5px] text-slate-600 bg-slate-50 p-1.5 rounded-lg border border-slate-100 font-medium">
+                            <strong>Facilities:</strong> {tc.facilities}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 🩹 First Aid Life-Saving Protocols */}
+                {sosData.first_aid_protocols && (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider block">
+                      🩹 Immediate First-Aid Life Protocols:
+                    </span>
+                    <div className="space-y-1.5">
+                      {sosData.first_aid_protocols.map((fa: any, fIdx: number) => (
+                        <div key={fIdx} className="p-2 bg-slate-50 border border-slate-200/70 rounded-xl text-[9px] text-slate-700">
+                          <strong className="text-slate-900 block mb-0.5">⚠️ {fa.condition}</strong>
+                          <p className="text-slate-600 leading-relaxed font-medium">{fa.action}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

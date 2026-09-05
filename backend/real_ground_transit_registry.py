@@ -464,7 +464,255 @@ REAL_GROUND_DATA: Dict[str, Dict[str, Any]] = {
             ]
         },
         "hotel_last_mile": "From Ooty ATC Bus Stand / Railway Station to Lake / Fern Hill: Local autos charge ₹80-120."
+    },
+
+    "darjeeling": {
+        "hub_airport": "Bagdogra Int’l Airport (IXB)",
+        "airport_iata": "IXB",
+        "distance_km": 69.5,
+        "airport_coordinates": {"lat": 26.6811, "lng": 88.3286},
+        "dest_coordinates": {"lat": 27.0410, "lng": 88.2663},
+        "summary": "Flight lands at Bagdogra Airport (IXB). Scenic hill road to Darjeeling is 70 km via Rohini Ghats / NH-110.",
+        "taxi": {
+            "title": "Bagdogra Taxi Operators Union / Private Cab",
+            "icon": "🚕",
+            "pricing_type": "Pre-Paid Counter Fixed / Bargainable Outside",
+            "estimated_fare_range": "₹2,400 - ₹3,000",
+            "duration": "2 hrs 45 mins",
+            "availability": "24x7 Outside Terminal 1 Exit",
+            "bargaining_tip": "Airport Pre-Paid counter slip is fixed at ₹2,800 for Sedan and ₹3,600 for Innova. At Siliguri Junction stand (12 km from airport), shared Tata Sumos / Boleros charge ₹250-₹300/seat.",
+            "services": [
+                {"name": "Mountain Hatchback / WagonR", "operator": "Bagdogra Airport Taxi Association", "timings": "24x7 on arrival", "fare": "₹2,400 - ₹2,700", "capacity": "3 Pax • Mountain Ghat Expert", "route_stops": "Bagdogra ➔ Rohini Toll ➔ Kurseong ➔ Ghum ➔ Darjeeling Chowrasta"},
+                {"name": "Sedan Swift Dzire AC", "operator": "Official Airport Pre-Paid Desk", "timings": "24x7 Instant Departure", "fare": "₹2,800 (Counter Slip)", "capacity": "4 Pax • 3 Large Bags", "route_stops": "Airport ➔ Direct drop at Darjeeling Hotel / Mall Road"},
+                {"name": "Shared Tata Sumo / Winger (Siliguri Stand)", "operator": "Siliguri Hill Drivers Union", "timings": "Every 20 mins (06:00 AM - 05:30 PM)", "fare": "₹250 - ₹300 / seat", "capacity": "Shared Mountain 4WD", "route_stops": "Siliguri Junction ➔ Tindharia ➔ Kurseong ➔ Ghum ➔ Darjeeling Stand"}
+            ]
+        },
+        "train": {
+            "title": "Darjeeling Himalayan Railway (DHR) UNESCO World Heritage Toy Train",
+            "icon": "🚆",
+            "pricing_type": "Official IRCTC Heritage Tariff",
+            "estimated_fare_range": "₹140 - ₹1,420 / person",
+            "duration": "7 hrs (Full Line) / 2 hrs (Ghum Joy Ride)",
+            "availability": "Daily Scheduled Steam & Diesel Services",
+            "bargaining_tip": "Iconic 2-foot narrow gauge railway crossing Batasia Loop. Train 52541 runs from New Jalpaiguri (NJP) to Darjeeling. Joy rides run between Darjeeling and Ghum.",
+            "services": [
+                {"name": "NJP - Darjeeling Passenger (Train 52541)", "operator": "Northeast Frontier Railway (DHR)", "timings": "Dep NJP: 10:00 AM ➔ Arr Darjeeling: 17:20 PM", "fare": "First Class AC: ₹1,420 • General: ₹140", "capacity": "UNESCO World Heritage Mountain Toy Train", "route_stops": "New Jalpaiguri ➔ Siliguri ➔ Sukna ➔ Tindharia ➔ Kurseong ➔ Ghum ➔ Darjeeling"},
+                {"name": "Darjeeling - Ghum - Darjeeling Steam Joy Ride", "operator": "DHR Heritage Steam", "timings": "09:20 AM, 11:25 AM, 13:25 PM, 15:30 PM", "fare": "Heritage Steam: ₹1,500 • Diesel: ₹1,000", "capacity": "Steam Engine Panoramic Vista Coach", "route_stops": "Darjeeling Station ➔ Batasia Loop (10 mins photo stop) ➔ Ghum Museum ➔ Darjeeling"}
+            ]
+        },
+        "bus": {
+            "title": "North Bengal State Transport (NBSTC) Hill Bus",
+            "icon": "🚌",
+            "pricing_type": "Official Government Ticket",
+            "estimated_fare_range": "₹110 - ₹160 / person",
+            "duration": "3 hrs 30 mins",
+            "availability": "07:00 AM - 04:00 PM (Hourly)",
+            "bargaining_tip": "Fixed state bus ticket. Buses depart from Siliguri Tenzing Norgay Central Bus Terminus (11 km from Bagdogra airport).",
+            "services": [
+                {"name": "NBSTC Regular Mountain Bus", "operator": "North Bengal State Transport Corporation", "timings": "Every 45 mins from Siliguri Central Stand", "fare": "₹130 / seat", "capacity": "Ordinary State Bus", "route_stops": "Siliguri ➔ Sukna ➔ Kurseong ➔ Tung ➔ Sonada ➔ Darjeeling Stand"}
+            ]
+        },
+        "hotel_last_mile": "From Darjeeling Bus Stand / Railway Station to Mall Road / Chowrasta: Vehicles are not allowed on Mall Road; local porters carry luggage for ₹100-150. Walking time is 5-10 mins."
+    },
+
+    "gangtok": {
+        "hub_airport": "Bagdogra Int’l Airport (IXB) / Pakyong Airport (PYG)",
+        "airport_iata": "IXB",
+        "distance_km": 124.0,
+        "airport_coordinates": {"lat": 26.6811, "lng": 88.3286},
+        "dest_coordinates": {"lat": 27.3389, "lng": 88.6065},
+        "summary": "Flight lands at Bagdogra Airport (IXB). Highway drive to Gangtok is 124 km along the Teesta River valley via NH-10.",
+        "taxi": {
+            "title": "Sikkim Cab Operators Union / Pre-Paid Taxi",
+            "icon": "🚕",
+            "pricing_type": "Official Union Pre-Paid / Shared Stand",
+            "estimated_fare_range": "₹3,500 - ₹4,200",
+            "duration": "4 hrs 15 mins",
+            "availability": "24x7 Outside Bagdogra Arrivals",
+            "bargaining_tip": "Bagdogra Airport prepaid booth charges fixed ₹3,800 (Sedan) and ₹4,600 (Innova). Shared Mahindra Bolero from Siliguri SNT Stand costs ₹350-₹400/seat.",
+            "services": [
+                {"name": "Sedan Swift Dzire (Sikkim Permit)", "operator": "Bagdogra Airport Pre-Paid", "timings": "24x7 on arrival", "fare": "₹3,500 - ₹3,800", "capacity": "4 Pax • 3 Bags", "route_stops": "Bagdogra ➔ Sevoke ➔ Teesta Bazar ➔ Rangpo Border Checkpost ➔ Singtam ➔ Gangtok"},
+                {"name": "Toyota Innova Crysta (Luxury Mountain 4WD)", "operator": "Sikkim Tourism Authorized", "timings": "24x7 on arrival", "fare": "₹4,500 - ₹5,000", "capacity": "6-7 Pax • High-Clearance Comfort", "route_stops": "Direct luxury mountain transit with Rangpo ILP fast-track assistance"},
+                {"name": "Shared Mahindra Bolero / Maxx (SNT Stand)", "operator": "Siliguri SNT Stand Cooperative", "timings": "Every 20 mins (06:00 AM - 04:30 PM)", "fare": "₹350 - ₹400 / seat", "capacity": "Shared 9-Seater Mountain Cab", "route_stops": "Siliguri SNT Stand ➔ Rangpo ➔ Deorali Taxi Stand (Gangtok)"}
+            ]
+        },
+        "bus": {
+            "title": "SNT (Sikkim Nationalised Transport) AC Bus",
+            "icon": "🚌",
+            "pricing_type": "Government Fixed Ticket",
+            "estimated_fare_range": "₹180 - ₹280 / person",
+            "duration": "4 hrs 45 mins",
+            "availability": "07:00 AM - 03:00 PM",
+            "bargaining_tip": "Bookable at SNT booking counter at Siliguri. Crosses Rangpo border directly to Gangtok Central SNT Bus Terminal.",
+            "services": [
+                {"name": "SNT Volvo AC Semi-Sleeper", "operator": "Sikkim Nationalised Transport (SNT)", "timings": "08:30 AM, 11:00 AM, 13:30 PM", "fare": "₹280 / seat", "capacity": "2x2 Air-Conditioned Coach", "route_stops": "Siliguri SNT Terminus ➔ Sevoke Coronation Bridge ➔ Rangpo ➔ Gangtok SNT"},
+                {"name": "SNT Ordinary Hill Stage Carrier", "operator": "SNT Government", "timings": "Hourly (07:00 AM - 15:00 PM)", "fare": "₹180 / seat", "capacity": "Standard State Hill Bus", "route_stops": "Sevoke ➔ Melli ➔ Rangpo ➔ Singtam ➔ Gangtok"}
+            ]
+        },
+        "hotel_last_mile": "From Deorali Taxi Stand to MG Marg / Gangtok hotels: Local small taxis (Maruti Alto/WagonR) charge fixed union fare of ₹120-₹150."
+    },
+
+    "spiti": {
+        "hub_airport": "Bhuntar Airport, Kullu (KUU) / Chandigarh (IXC)",
+        "airport_iata": "KUU",
+        "distance_km": 245.0,
+        "summary": "High-Altitude Himalayan Terrain. Spiti Valley (Kaza) is 245 km from Bhuntar via Atal Tunnel, Kunzum Pass (4,551m) or Shimla-Kinnaur route.",
+        "taxi": {
+            "title": "Spiti Valley 4x4 Mountain Operators Union",
+            "icon": "🚕",
+            "pricing_type": "Strict Mountain Union Tariff",
+            "estimated_fare_range": "₹4,500 - ₹5,500 / day",
+            "duration": "9 - 10 hrs (Challenging Mountain Drive)",
+            "availability": "Pre-Booked Mountain Drivers (May - October)",
+            "bargaining_tip": "Kunzum Pass road is extreme dirt track and water crossings. 4WD Mahindra Scorpio / Camper with a native Spitian driver is MANDATORY. Fixed union daily tariff.",
+            "services": [
+                {"name": "Mahindra Scorpio 4x4 / Bolero Camper", "operator": "Spiti Taxi Operators Welfare Union", "timings": "Early Morning Departure (05:00 AM)", "fare": "₹4,500 - ₹5,500 / day", "capacity": "4-5 Pax • Oxygen Kit & Snow Chains Equipped", "route_stops": "Bhuntar ➔ Manali ➔ Atal Tunnel ➔ Gramphu ➔ Batal (Chacha-Chachi Dhaba) ➔ Kunzum Pass ➔ Losar ➔ Kaza"},
+                {"name": "Toyota Innova Crysta (Via Kinnaur Highway)", "operator": "Himachal High-Altitude Tours", "timings": "Early Morning", "fare": "₹5,500 - ₹6,500 / day", "capacity": "6 Pax", "route_stops": "Shimla ➔ Rampur ➔ Reckong Peo ➔ Nako Lake ➔ Tabo Monastery ➔ Kaza"}
+            ]
+        },
+        "bus": {
+            "title": "HRTC Extreme Mountain Bus (World’s Toughest Bus Route)",
+            "icon": "🚌",
+            "pricing_type": "Official Government Ticket",
+            "estimated_fare_range": "₹380 - ₹450 / person",
+            "duration": "11 hrs (Breathtaking Mountain Adventure)",
+            "availability": "Once Daily (June to October only)",
+            "bargaining_tip": "World-famous HRTC Kullu-Kaza morning bus departs early. Tickets issued on bus. Board at Kullu/Manali bus stand.",
+            "services": [
+                {"name": "HRTC Kullu - Kaza Himalayan Ordinary (Route 302)", "operator": "HRTC Kullu Mountain Depot", "timings": "Dep Manali Stand: 05:00 AM ➔ Arr Kaza: 16:30 PM (Daily in Summer)", "fare": "₹385 / seat", "capacity": "Heavy-Duty Mountain Suspension Bus", "route_stops": "Manali ➔ Atal Tunnel ➔ Gramphu ➔ Batal ➔ Kunzum Pass Top ➔ Losar ➔ Rangrik ➔ Kaza Bus Stand"}
+            ]
+        },
+        "hotel_last_mile": "From Kaza Bus Stand to Kaza market / homestays: Walking distance (free) or ₹50 local Bolero ride."
+    },
+
+    "munnar": {
+        "hub_airport": "Cochin Int’l Airport (COK)",
+        "airport_iata": "COK",
+        "distance_km": 109.5,
+        "summary": "Flight lands at Cochin Airport (COK). Scenic Western Ghats tea valley route to Munnar is 110 km via NH-85.",
+        "taxi": {
+            "title": "Cochin Airport Pre-Paid Taxi Association",
+            "icon": "🚕",
+            "pricing_type": "Strict Pre-Paid Booth Rates / Uber Intercity",
+            "estimated_fare_range": "₹3,000 - ₹3,600",
+            "duration": "3 hrs 30 mins",
+            "availability": "24x7 at Terminal 1 & 3 Arrivals",
+            "bargaining_tip": "Cochin Airport Prepaid booth is 100% fixed rate (₹3,450 for AC Sedan, ₹4,600 for Innova). Uber Intercity app quotes ₹2,800-₹3,150 depending on demand.",
+            "services": [
+                {"name": "AC Sedan (Swift Dzire / Toyota Etios)", "operator": "Cochin Airport Pre-Paid Taxi", "timings": "24x7 Instant Departure", "fare": "₹3,100 - ₹3,450 (Printed Slip)", "capacity": "4 Pax • 3 Bags", "route_stops": "Airport ➔ Perumbavoor ➔ Kothamangalam ➔ Cheeyappara Falls ➔ Munnar Town"},
+                {"name": "Toyota Innova Crysta (Luxury Hill AC)", "operator": "Cochin Airport Taxi Desk", "timings": "24x7 on arrival", "fare": "₹4,400 - ₹4,800", "capacity": "6-7 Pax • Family Group", "route_stops": "Direct comfort drive to Tea Estate Resorts / Chinnakanal"}
+            ]
+        },
+        "bus": {
+            "title": "KSRTC (Kerala State Road Transport) Hill Bus",
+            "icon": "🚌",
+            "pricing_type": "Official Government Ticket",
+            "estimated_fare_range": "₹140 - ₹210 / person",
+            "duration": "4 hrs 15 mins",
+            "availability": "06:00 AM - 08:30 PM (Every 40 mins)",
+            "bargaining_tip": "Take a 15-min auto/feeder from airport to Aluva KSRTC Bus Station (11 km), where fast passenger hill buses leave every 40 minutes.",
+            "services": [
+                {"name": "KSRTC Fast Passenger Hill Bus", "operator": "Kerala State Road Transport Corporation", "timings": "Every 40 mins from Aluva KSRTC Stand", "fare": "₹145 / seat", "capacity": "Ordinary State Express", "route_stops": "Aluva Stand ➔ Kothamangalam ➔ Neriamangalam ➔ Adimali ➔ Munnar KSRTC Stand"},
+                {"name": "KSRTC Super Deluxe Air Suspended", "operator": "KSRTC Deluxe Division", "timings": "07:30 AM, 10:15 AM, 14:00 PM, 17:30 PM", "fare": "₹210 / seat", "capacity": "2x2 Air Suspension Coach", "route_stops": "Aluva ➔ Kothamangalam ➔ Munnar Town Stand"}
+            ]
+        },
+        "hotel_last_mile": "From Munnar town KSRTC stand to tea estate resorts / Chinnakanal (18 km): Local hill 4x4 jeeps charge ₹500-₹700; town autos charge ₹100-₹150."
+    },
+
+    "hampi": {
+        "hub_airport": "Hubballi Airport (HBX) / Jindal Vidyanagar (VDY)",
+        "airport_iata": "HBX",
+        "distance_km": 145.0,
+        "summary": "UNESCO World Heritage Ruins. Flight lands at Hubli Airport (HBX) (145 km via NH-67) or Jindal Toranagallu (VDY - 38 km).",
+        "taxi": {
+            "title": "Hubli-Hospet Tourist Taxi Operators",
+            "icon": "🚕",
+            "pricing_type": "Pre-Paid / Negotiable Outside",
+            "estimated_fare_range": "₹3,200 - ₹3,800",
+            "duration": "2 hrs 45 mins",
+            "availability": "24x7 Outside Hubli Airport",
+            "bargaining_tip": "Taxi from Hubli to Hampi can be negotiated down to ₹3,200. From Hospet Railway Station (nearest railhead, 12 km from Hampi), autos charge ₹180-₹220.",
+            "services": [
+                {"name": "Sedan AC (Dzire / Etios)", "operator": "Hubli Airport Cabs", "timings": "24x7 on arrival", "fare": "₹3,200 - ₹3,600", "capacity": "4 Pax", "route_stops": "Hubli ➔ Gadag ➔ Koppal ➔ Hospet ➔ Hampi Bazaar"},
+                {"name": "Hospet Station to Hampi Auto Rickshaw", "operator": "Hospet Auto Union", "timings": "24x7 meets all arriving trains", "fare": "₹180 - ₹220 per auto", "capacity": "3 Pax (12 km direct)", "route_stops": "Hospet Railway Station ➔ Kamalapur ➔ Hampi Virupaksha Temple"}
+            ]
+        },
+        "train": {
+            "title": "Indian Railways (IRCTC Connecting Express to Hospet Jn)",
+            "icon": "🚆",
+            "pricing_type": "Official IRCTC Tariff",
+            "estimated_fare_range": "₹60 - ₹245 / person",
+            "duration": "2 hrs 15 mins",
+            "availability": "Daily Express Trains (Hubli to Hospet)",
+            "bargaining_tip": "Nearest railway station to Hampi is Hospet Junction (HPT - 12 km). Daily express trains run directly from Hubli (UBL).",
+            "services": [
+                {"name": "Hampi Express (Train 16591/16592)", "operator": "South Western Railway (SWR)", "timings": "Dep Hubli (UBL): 18:30 PM ➔ Arr Hospet (HPT): 20:45 PM", "fare": "2S: ₹65 • SL: ₹145 • 3A: ₹505", "capacity": "Express Line Direct to Hampi Gate", "route_stops": "Hubli Jn ➔ Gadag ➔ Koppal ➔ Munirabad ➔ Hospet Jn (HPT)"},
+                {"name": "Amaravathi Express (Train 17226)", "operator": "South Western Railway", "timings": "Dep Hubli: 13:00 PM ➔ Arr Hospet: 15:15 PM", "fare": "2S: ₹70 • CC: ₹245", "capacity": "Day Express Service", "route_stops": "Hubballi ➔ Gadag ➔ Hospet Jn"}
+            ]
+        },
+        "bus": {
+            "title": "KSRTC / NWKRTC Karnataka Sarige Express",
+            "icon": "🚌",
+            "pricing_type": "Government Fixed Ticket",
+            "estimated_fare_range": "₹140 - ₹220 / person",
+            "duration": "3 hrs 15 mins",
+            "availability": "Every 30 mins from Hubli Old / New Bus Stand",
+            "bargaining_tip": "Direct NWKRTC buses run from Hubli to Hospet every 30 minutes, with local feeder buses to Hampi every 15 mins (₹18).",
+            "services": [
+                {"name": "NWKRTC Karnataka Sarige", "operator": "North Western Karnataka Road Transport", "timings": "Every 30 mins (06:00 AM - 10:00 PM)", "fare": "₹155 / seat", "capacity": "Ordinary State Express", "route_stops": "Hubli Old Bus Stand ➔ Gadag ➔ Koppal ➔ Hospet KSRTC Stand"},
+                {"name": "Hospet to Hampi Feeder Shuttle", "operator": "KSRTC Local Service", "timings": "Every 15 mins (06:30 AM - 20:30 PM)", "fare": "₹18 / seat", "capacity": "Red City Bus (25 mins)", "route_stops": "Hospet Stand ➔ Kadirampura ➔ Kamalapur ➔ Hampi Bazaar"}
+            ]
+        },
+        "hotel_last_mile": "From Hampi Bazaar to Hippie Island / Sanapur Lake (across river): Coracle boat ride ₹50/person (daytime) or 40-min auto around the dam bridge (₹500-₹600)."
+    },
+
+    "puri": {
+        "hub_airport": "Biju Patnaik Int’l Airport, Bhubaneswar (BBI)",
+        "airport_iata": "BBI",
+        "distance_km": 59.0,
+        "summary": "Flight lands at Bhubaneswar Airport (BBI). Distance to Lord Jagannath Dham, Puri is 59 km along NH-316.",
+        "taxi": {
+            "title": "Bhubaneswar Airport Pre-Paid Taxi Association",
+            "icon": "🚕",
+            "pricing_type": "Official Pre-Paid Counter / App Cabs",
+            "estimated_fare_range": "₹1,300 - ₹1,800",
+            "duration": "1 hr 15 mins",
+            "availability": "24x7 Outside Terminal 1",
+            "bargaining_tip": "Airport Pre-paid Taxi counter charges fixed ₹1,650 for AC Sedan. Uber / Ola outstation from airport quotes ₹1,350 - ₹1,550.",
+            "services": [
+                {"name": "AC Sedan (Dzire / Etios)", "operator": "BBI Airport Pre-Paid Taxi", "timings": "24x7 on arrival", "fare": "₹1,400 - ₹1,650 (Fixed Slip)", "capacity": "4 Pax • 3 Bags", "route_stops": "BBI Airport ➔ Uttara Chowk ➔ Pipili Applique Village ➔ Chandanpur ➔ Puri Grand Road"},
+                {"name": "SUV Ertiga / Innova", "operator": "Airport Tourism Taxi", "timings": "24x7 on arrival", "fare": "₹2,200 - ₹2,500", "capacity": "6-7 Pax", "route_stops": "Direct luxury highway transit to Sea Beach / Swargadwar hotels"}
+            ]
+        },
+        "train": {
+            "title": "Indian Railways (IRCTC Superfast & MEMU Express to Puri)",
+            "icon": "🚆",
+            "pricing_type": "Official IRCTC Tariff",
+            "estimated_fare_range": "₹35 - ₹165 / person",
+            "duration": "1 hr 10 mins",
+            "availability": "Trains every 45-60 mins from Bhubaneswar (BBS)",
+            "bargaining_tip": "Bhubaneswar to Puri has high-density rail connectivity with trains departing almost every hour.",
+            "services": [
+                {"name": "Puri Superfast Express (Train 12837)", "operator": "East Coast Railway (ECoR)", "timings": "Dep Bhubaneswar (BBS): 05:25 AM ➔ Arr Puri (PURI): 06:45 AM", "fare": "2S: ₹60 • CC: ₹165", "capacity": "Superfast Morning Service (1h 20m)", "route_stops": "Bhubaneswar ➔ Khurda Road Jn ➔ Sakhi Gopal ➔ Puri Terminus"},
+                {"name": "Bhubaneswar - Puri MEMU Passenger (Train 08441)", "operator": "East Coast Railway", "timings": "Dep: 09:30 AM, 14:15 PM, 17:40 PM", "fare": "General Unreserved: ₹30 (UTS App)", "capacity": "Frequent Electric Commuter Train", "route_stops": "Bhubaneswar ➔ Lingaraj Temple Road ➔ Khurda Road ➔ Delang ➔ Puri"}
+            ]
+        },
+        "bus": {
+            "title": "OSRTC & Mo Bus AC Electric Shuttle",
+            "icon": "🚌",
+            "pricing_type": "Official Government Ticket",
+            "estimated_fare_range": "₹70 - ₹120 / person",
+            "duration": "1 hr 30 mins",
+            "availability": "Every 15-20 mins (06:00 AM - 10:30 PM)",
+            "bargaining_tip": "Mo Bus Route 50 (AC Electric) runs directly from Bhubaneswar Railway Station / Airport Square to Puri Bus Stand. Clean, cashless & fast!",
+            "services": [
+                {"name": "Mo Bus AC Electric Express (Route 50)", "operator": "Capital Region Urban Transport (CRUT)", "timings": "Every 20 mins (06:30 AM - 21:00 PM)", "fare": "₹90 / seat", "capacity": "Electric AC Low-Floor Bus", "route_stops": "Airport Square ➔ Master Canteen ➔ Pipili Toll ➔ Puri Bus Stand"},
+                {"name": "OSRTC Non-Stop Deluxe", "operator": "Odisha State Road Transport", "timings": "Every 30 mins from Baramunda / Kalpana Stand", "fare": "₹110 / seat", "capacity": "2x2 Deluxe Pushback", "route_stops": "Bhubaneswar ➔ Uttara ➔ Puri Town"}
+            ]
+        },
+        "hotel_last_mile": "From Puri Railway Station / Bus Stand to Swargadwar / Golden Beach: Auto-rickshaws charge ₹100-₹150, E-rickshaws charge ₹20-₹30 per seat."
     }
+
 }
 
 def get_verified_ground_transfer(airport_iata: str, dest_name: str, travelers: int = 1) -> Dict[str, Any]:
