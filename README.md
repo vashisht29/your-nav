@@ -1,120 +1,108 @@
-# YourNav | Autonomous AI Travel & Safety Platform
+# YourNav
 
-[![Platform](https://img.shields.io/badge/Platform-YourNav%20AI-007AFF?logo=apple)](https://github.com/vashisht29/your-nav)
-[![Architecture](https://img.shields.io/badge/Architecture-Autonomous%20Agentic%20Engine-10B981)](#-system-architecture)
-[![Safety](https://img.shields.io/badge/Safety-RoadGuard%20Sentinel-EF4444)](#-roadguard-sentry--safety-agent)
-[![Security](https://img.shields.io/badge/Security-Enterprise%20Grade%20OAuth%20%26%20Relay-8B5CF6)](#-privacy--security)
+### Autonomous Agentic AI Route Planning & Highway Safety Platform
 
-> **YourNav** is an autonomous, constraint-aware **Travel Intelligence & Highway Safety Platform**. It seamlessly unifies predictive route intelligence, combinatorial schedule optimization, and real-time vehicular telemetry into a single, cohesive companion for modern road expeditions.
+**YourNav** is an autonomous, constraint-aware travel planning and on-road safety engine designed for real-world road expeditions across India.
+
+Unlike traditional apps that only draw a static line between two cities or sell pre-packaged hotel bundles, YourNav functions as an intelligent travel agent and vehicular safety sentry. It plans fatigue-free, budget-guaranteed multi-day journeys while actively safeguarding travelers on expressways and remote highways with real-time telemetry.
 
 ---
 
-## 🧭 System Flow & Architecture
+## 🥊 How YourNav is Different from Others
 
-YourNav processes travel requirements through a structured, multi-tier intelligence pipeline designed to ensure realistic, fatigue-free itineraries and continuous on-road protection:
+Most travelers currently juggle 3 to 4 different apps (navigation apps for directions, online booking portals for stays, itinerary planners for lists, and messaging apps for sharing location). None of these platforms talk to each other, and none of them protect you on the road.
+
+| Feature / Capability | Standard Navigation Apps | Online Travel Portals | Generic Itinerary Planners | **YourNav Platform** |
+| :--- | :---: | :---: | :---: | :---: |
+| **Fatigue Prevention (>10h Trips)** | ❌ None | ❌ None | ❌ None | **✅ Automatic Midway Stay Geocoding** |
+| **Constraint Solver (Budget & Time)** | ❌ No budget awareness | ❌ Static ticket sales | ❌ Manual lists only | **✅ Mathematically Guaranteed Schedule** |
+| **Highway Meal & Dhaba Scheduling** | ❌ Manual search only | ❌ None | ❌ None | **✅ Synchronized Transit Meal Halts** |
+| **NHAI Toll Matrix & Fuel/EV Range** | ⚠️ Generic toll warning | ❌ None | ❌ None | **✅ Exact Toll Plaza Fees & Range Matrix** |
+| **Active Highway Immobility Sentry** | ❌ None | ❌ None | ❌ None | **✅ Real-time Anomaly & Crash Sentry** |
+| **Nearest Trauma & Police Dispatch** | ❌ Manual 112/100 dial | ❌ None | ❌ None | **✅ Automatic On-Route Emergency Routing** |
+| **Zero-Network Emergency Relay** | ❌ Requires internet | ❌ Requires internet | ❌ Requires internet | **✅ Offline Peer-to-Peer Mesh Simulation** |
+| **Private Family Companion Sync** | ⚠️ Basic GPS sharing | ❌ None | ❌ None | **✅ Live Milestone & Telemetry Tracking** |
+
+---
+
+## 🧭 How It Works (End-to-End Travel Flow)
+
+YourNav guides travelers through a seamless 5-stage lifecycle—from initial inspiration to live on-road navigation and post-trip community sharing:
 
 ```
-                      [ Traveler Input & Travel Style ]
-                                     │
-                                     ▼
-      ┌─────────────────────────────────────────────────────────────┐
-      │               1. Travel Intelligence Engine                 │
-      │  • Persona Profiling & Preference Understanding             │
-      │  • Spatial Property Valuation & POI Discovery               │
-      │  • Multi-Dimensional Experience Quality Scoring             │
-      └──────────────────────────────┬──────────────────────────────┘
-                                     │
-                                     ▼
-      ┌─────────────────────────────────────────────────────────────┐
-      │            2. Constraint & Optimization Solver              │
-      │  • Conflict-Free Timeline & Waypoint Sequencing             │
-      │  • Driver Fatigue Mitigation & Midway Halt Scheduling       │
-      │  • National Highway Toll Matrix & Range Calculations        │
-      └──────────────────────────────┬──────────────────────────────┘
-                                     │
-                                     ▼
-      ┌─────────────────────────────────────────────────────────────┐
-      │            3. Active Safety & Companion Telemetry           │
-      │  • Real-Time GPS / NavIC Immobility & Sentry Monitoring     │
-      │  • Multi-Stage Emergency Escalation & Assistance Dispatch   │
-      │  • Private Family Journey Tracking & Telemetry Sync         │
-      └─────────────────────────────────────────────────────────────┘
+[ 1. Traveler Intent ] ──► [ 2. Constraint Engine ] ──► [ 3. Curation & Scoring ]
+  • Origin & Destination     • Driver Fatigue Check (<10h) • Fair-market Valuation
+  • Vehicle (Petrol/EV)      • Midway Stay Discovery        • Review Sentiment Filter
+  • Budget & Travel Style    • NHAI Toll Plaza Fees         • Budget-Optimized Stays
+                             • Meal & Dhaba Stop Timing
+                                         │
+                                         ▼
+[ 5. Community & Profile ] ◄── [ 4. RoadGuard Sentry & Live Companion ]
+  • Past Trips History         • Continuous GPS / Telemetry Monitoring
+  • Spot Recommendations       • Expressway Immobility Detection
+  • Verified Photo Uploads     • Multi-Stage Verification & Emergency Dispatch
+                               • Shareable Live Family Telemetry (/track/[id])
 ```
 
 ---
 
-## 💡 Core Intelligence Modules
+### Step 1: Intelligent Intent & Persona Recognition
+* The traveler enters starting point, destination, vehicle type (Petrol, Diesel, or Electric Vehicle), party size, and target budget.
+* The engine dynamically profiles the traveler's pacing style—whether they are a budget-conscious backpacker, a family exploring heritage circuits, or an adventure traveler seeking high-altitude passes.
+* All subsequent routing, recommendations, and timing calibrate to match this traveling pace.
 
-### 1. Persona-Driven Personalization
-* **Purpose:** Matches destinations, dining choices, and activity pacing to individual traveler archetypes without cumbersome preference surveys.
-* **How It Works:** Dynamically evaluates traveler inputs (budget flexibility, pacing preferences, party size, travel theme) to categorize trips into distinct travel styles—such as budget exploration, luxury leisure, family cultural travel, or high-tempo adventure.
-* **Traveler Value:** Delivers recommendations that match the traveler's personal rhythm, avoiding generic or poorly suited recommendations.
+### Step 2: Constraint-Aware Schedule & Route Optimization
+* **Driver Stamina & Midway Halts:** On routes longer than 10 continuous driving hours (e.g. Delhi to Goa or Mumbai to Bangalore), the system automatically geocodes a scenic, safe midway city (such as Udaipur or Kolhapur) to eliminate long-haul driver exhaustion.
+* **Transit Rest Stops:** Intelligently schedules 45-minute lunch breaks at verified highway Dhabas between 12:30 PM and 2:30 PM, alongside 20-minute tea breaks along highway corridors.
+* **Expressway Toll Matrix:** Calculates precise National Highway toll plaza fees, Fastag telemetry, and expected fuel or EV charging stops.
+* **Hard Budget Enforcement:** Guarantees that stays, fuel, tolls, and activities stay strictly within the traveler's stated budget, providing 1-click alternative swaps (such as stay-swaps or train alternatives) if limits are exceeded.
 
-### 2. Constraint-Aware Journey Optimization
-* **Purpose:** Solves the multi-objective problem of scheduling complex, multi-day itineraries under strict physical and financial constraints.
-* **How It Works:** Leverages combinatorial optimization to mathematically resolve competing travel requirements:
-  - **Fatigue Mitigation:** Enforces safe continuous driving thresholds on long-distance routes, automatically scheduling verified midway stopovers to protect driver alertness.
-  - **Natural Rest Stops:** Integrates well-timed highway meal intervals and refreshment halts along transit corridors.
-  - **Operating Windows:** Synchronizes visits with verified site opening and closing schedules.
-  - **Budget Guarantees:** Ensures overall trip expenses respect the traveler's target budget, offering one-click alternatives if targets are exceeded.
-* **Traveler Value:** Eliminates the frustration of unrealistic, overlapping, or exhausting travel schedules.
+### Step 3: Spatial Valuation & Quality Verification
+* **Fair-Market Pricing:** Fills missing rate data for regional homestays and offbeat accommodations using geospatial valuation models, preventing zero-cost planning surprises.
+* **Aspect Sentiment Screening:** Scans traveler feedback across cleanliness, noise levels, and service quality, automatically filtering out noisy highway motels or sub-standard lodgings.
 
-### 3. Spatial Valuation & Experience Scoring
-* **Purpose:** Ensures reliable pricing and quality verification across regional destinations, offbeat homestays, and highway waypoints.
-* **How It Works:** 
-  - Utilizes spatial estimation models to approximate realistic market rates for locations where public pricing data is incomplete.
-  - Analyzes aggregated traveler sentiment across cleanliness, service quality, noise levels, and overall value to filter out sub-par venues.
-* **Traveler Value:** Travelers receive high-confidence cost estimations and avoid unpleasant surprises regarding accommodation quality.
+### Step 4: RoadGuard Sentry (Active Highway Safety Agent)
+* **Real-Time Speed & Immobility Tracking:** During the journey, RoadGuard continuously monitors vehicular speed and GPS telemetry.
+* **Accident vs. Traffic Jam Detection:** Analyzes sudden or prolonged stops on expressways and mountain ghats, intelligently differentiating between standard traffic jams and potential breakdowns or accidents.
+* **Multi-Tier Alert Escalation:** If abnormal immobility is detected, the system initiates a timed auditory check on the driver's phone. If unresponsive, it automatically dispatches emergency alerts with exact GPS coordinates.
+* **Nearest Emergency Assistance:** Immediately maps the closest verified trauma hospitals, highway police checkpoints, and roadside assistance units.
+* **Zero-Network Emergency Relay:** In remote highway dead-zones without cellular signal, RoadGuard activates an offline peer-to-peer mesh simulation to broadcast distress packets to nearby passing vehicles.
 
-### 4. RoadGuard Sentry (Active Safety & Telemetry Agent)
-* **Purpose:** Provides active, real-time safety monitoring throughout highway journeys and remote travel corridors.
-* **How It Works:**
-  - **Continuous Telemetry Monitoring:** Ingests live speed, heading, and positioning telemetry to track vehicle state.
-  - **Intelligent Immobility Detection:** Analyzes prolonged halts on expressways or mountainous roads, distinguishing between ordinary traffic slowdowns and potential roadside emergencies.
-  - **Tiered Verification:** Initiates non-intrusive awareness checks before escalating to emergency procedures.
-  - **Emergency Coordination:** Automatically maps nearest verified emergency facilities (medical centers, highway patrol, mechanical aid) and initiates emergency notifications.
-  - **Decentralized Emergency Broadcast:** Simulates peer-to-peer short-range mesh relays to maintain distress signaling even when cellular networks are unavailable.
-* **Traveler Value:** Real peace of mind for drivers and solo travelers exploring unfamiliar highways.
+### Step 5: Live Companion Sync & Family Telemetry
+* Travelers can share a private, secure live tracking link (`/track/[id]`) with designated family members.
+* Family members can view live journey milestones, current transit checkpoints, distance remaining, and battery status in real-time without calling or texting while driving.
 
-### 5. Companion Telemetry & Live Family Share
-* **Purpose:** Keeps loved ones informed throughout long-distance journeys without requiring repetitive calls or messages.
-* **How It Works:** Generates private, secure journey-tracking links where designated family members can view real-time waypoint progression, current route milestones, and live status.
-* **Traveler Value:** Transparent, stress-free connectivity between travelers and their families.
+### Step 6: Traveler Hub & Community Memories
+* A slide-over Traveler Hub allows users to:
+  - Edit traveler details, base city, and emergency guardian contacts.
+  - Review past completed expeditions with logged miles, milestones, and expense breakdowns.
+  - Share hidden gems, cafes, dhabas, and viewpoints with direct photo uploads, ratings, and practical travel tips.
 
 ---
 
-## 🌟 Platform Capabilities
+## 🌟 Core Platform Capabilities
 
-| Capability | Overview |
-| :--- | :--- |
-| **Autonomous Toll Matrix** | Live estimation of National Highway toll plazas, Fastag fees, and multi-route cost comparisons. |
-| **Automated Midway Discovery** | Automatic geocoding of scenic halfway stops for journeys exceeding safe single-day driving limits. |
-| **Multi-Modal Transit Intelligence** | Dynamic comparison between self-drive routes, premium express trains, and flight alternatives. |
-| **Traveler Profile Hub** | Unified traveler hub featuring profile customization, past expedition archives, and community spot sharing. |
-| **Community Recommendations** | Direct spot submission with photography, categorization, location tagging, and verified review ratings. |
-
----
-
-## 🔒 Privacy & Security
-
-* **Biometric & Modern Authentication:** Native support for Apple ID (with Touch ID / Face ID) and Google OAuth with multi-step verification.
-* **Private Relay Support:** Compatible with Apple's Private Relay email forwarding, allowing travelers to maintain complete email anonymity.
-* **Private Session Access:** Live tracking links utilize secure, randomized identifiers with time-limited validity.
-* **Data Minimization:** Telemetry data is scoped strictly to active journeys and processed with user privacy at the forefront.
+* **Autonomous Route Intelligence:** Live toll calculations, EV/Fuel consumption models, and road topography analysis.
+* **Midway Fatigue Mitigation:** Automated midway halt detection and overnight booking recommendations for routes exceeding safe driving limits.
+* **Multi-Modal Transit Alternatives:** 1-click failover comparison between Self-Drive, Indian Railways express trains, and Flights.
+* **RoadGuard Emergency Hub:** On-route trauma centers, national emergency integration, and offline SOS telemetry.
+* **Live Family Companion:** Encrypted, shareable telemetry links for hands-free live trip monitoring.
+* **Community Discovery Feed:** User-contributed local recommendations with real photo uploads, ratings, and location tags.
 
 ---
 
-## 🛠️ Technology Ecosystem
+## 🛠️ Technology Stack
 
-* **Application Layer:** Next.js 14, React 18, TypeScript, TailwindCSS, Framer Motion
-* **Service Layer:** Asynchronous FastAPI (Python 3), High-Concurrency Telemetry Handlers
-* **Optimization & Intelligence:** Combinatorial Solvers, Gradient-Boosted Decision Systems, Unsupervised Clustering
-* **Cartography & Geocoding:** Open-Standard Geocoding, Dynamic Vector Cartography, Layered Map Overlays
+* **Frontend:** Next.js 14, React 18, TypeScript, TailwindCSS, Framer Motion
+* **Backend:** FastAPI (Asynchronous Python 3)
+* **Engines:** Combinatorial Constraint Solver, Machine Learning Scoring & Telemetry Handlers
+* **Mapping:** OpenStreetMap, Nominatim Geocoding, Dynamic SVG Vehicle Overlays
 
 ---
 
 ## 📄 License & Attribution
 
-Designed and engineered with a focus on safety, reliability, and modern travel intelligence. All rights reserved.
+Designed and built with a focus on safety, driver endurance, and modern intelligent travel. All rights reserved.
+
 
 
