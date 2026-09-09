@@ -54,10 +54,10 @@ export default function AppleGlobalNav({ onOpenAuth, currentUser, onLogout, onOp
               title="Open Traveler Hub (User Details, Past Trips, Recommendations)"
             >
               <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-extrabold text-[10px] flex items-center justify-center">
-                {currentUser.name.charAt(0).toUpperCase()}
+                {(currentUser.name || "T").charAt(0).toUpperCase()}
               </div>
-              <span className="max-w-[90px] truncate">{currentUser.name}</span>
-              <span className="text-[10px] text-slate-400 capitalize">({currentUser.provider})</span>
+              <span className="max-w-[90px] truncate">{currentUser.name || "Traveler"}</span>
+              <span className="text-[10px] text-slate-400 capitalize">({currentUser.provider || "explorer"})</span>
             </button>
             {onLogout && (
               <button

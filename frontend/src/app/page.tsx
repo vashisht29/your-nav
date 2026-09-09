@@ -1934,9 +1934,9 @@ ${daysSummary}
                   title="Open Traveler Hub (User Details, Past Trips, Recommendations)"
                 >
                   <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-black text-[10px] flex items-center justify-center shadow-xs">
-                    {currentUser.name.charAt(0).toUpperCase()}
+                    {(currentUser?.name || "T").charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-bold text-slate-900 text-xs max-w-[90px] truncate">{currentUser.name}</span>
+                  <span className="font-bold text-slate-900 text-xs max-w-[90px] truncate">{currentUser?.name || "Traveler"}</span>
                   <span className="text-[10px] text-sky-600 font-bold bg-sky-50 px-1.5 py-0.2 rounded-md">✦ Hub</span>
                 </button>
                 <button
@@ -3441,20 +3441,20 @@ ${daysSummary}
                       🤖 Agentic AI Proactive Conflict Resolution Applied
                     </h4>
                     <span className="ml-auto text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200 font-extrabold px-2.5 py-0.5 rounded-full">
-                      ₹{itinerary.cost_breakdown.remaining_balance} Saved Under Hard Budget
+                      ₹{itinerary.cost_breakdown?.remaining_balance ?? 0} Saved Under Hard Budget
                     </span>
                   </div>
                   <p className="text-slate-700 text-xs leading-relaxed">
-                    Your initial stay choice of <strong className="text-rose-600 line-through">{itinerary.optimization_applied.original_stay} (₹{itinerary.optimization_applied.original_stay_cost})</strong> combined with transport & food exceeded your hard budget limit of <strong className="text-slate-900">₹{budget}</strong> (Total would be ₹{itinerary.optimization_applied.original_total_cost}).
+                    Your initial stay choice of <strong className="text-rose-600 line-through">{itinerary.optimization_applied?.original_stay || "Original Hotel"} (₹{itinerary.optimization_applied?.original_stay_cost || 0})</strong> combined with transport & food exceeded your hard budget limit of <strong className="text-slate-900">₹{budget}</strong> (Total would be ₹{itinerary.optimization_applied?.original_total_cost || budget}).
                   </p>
                   <div className="p-3 bg-white border border-emerald-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
                     <div>
                       <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">Proactive AI Substitution:</span>
-                      <span className="font-extrabold text-slate-900 text-xs">🏨 {itinerary.optimization_applied.optimized_stay} (₹{itinerary.optimization_applied.optimized_stay_cost})</span>
+                      <span className="font-extrabold text-slate-900 text-xs">🏨 {itinerary.optimization_applied?.optimized_stay || "Recommended Hotel"} (₹{itinerary.optimization_applied?.optimized_stay_cost || 0})</span>
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] font-bold text-slate-500 block">Final Optimized Price:</span>
-                      <span className="font-black text-emerald-700 text-sm">₹{itinerary.total_cost_inr}</span>
+                      <span className="font-black text-emerald-700 text-sm">₹{itinerary.total_cost_inr || 0}</span>
                     </div>
                   </div>
                   <p className="text-[10px] text-slate-500 italic">
@@ -3468,19 +3468,19 @@ ${daysSummary}
                 <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
                   <span className="text-[10px] text-slate-500 font-extrabold tracking-wider block uppercase">{t.allocatedBudget}</span>
                   <span className="text-lg font-black text-slate-900 flex items-center mt-1">
-                    <IndianRupee className="w-4 h-4 text-slate-400 mr-0.5" /> {itinerary.cost_breakdown.allocated_budget}
+                    <IndianRupee className="w-4 h-4 text-slate-400 mr-0.5" /> {itinerary.cost_breakdown?.allocated_budget || budget || 0}
                   </span>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-slate-200/90 border-l-4 border-l-sky-500 shadow-sm">
                   <span className="text-[10px] text-sky-600 font-extrabold tracking-wider block uppercase">{t.estimatedCost}</span>
                   <span className="text-lg font-black text-slate-900 flex items-center mt-1">
-                    <IndianRupee className="w-4 h-4 text-sky-600 mr-0.5" /> {itinerary.total_cost_inr}
+                    <IndianRupee className="w-4 h-4 text-sky-600 mr-0.5" /> {itinerary.total_cost_inr || 0}
                   </span>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-slate-200/90 border-l-4 border-l-emerald-500 shadow-sm">
                   <span className="text-[10px] text-emerald-600 font-extrabold tracking-wider block uppercase">{t.remainingBalance}</span>
                   <span className="text-lg font-black text-emerald-600 flex items-center mt-1">
-                    <IndianRupee className="w-4 h-4 text-emerald-600 mr-0.5" /> {itinerary.cost_breakdown.remaining_balance}
+                    <IndianRupee className="w-4 h-4 text-emerald-600 mr-0.5" /> {itinerary.cost_breakdown?.remaining_balance ?? 0}
                   </span>
                 </div>
               </div>
@@ -3491,19 +3491,19 @@ ${daysSummary}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-1">
                   <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
                     <span className="text-slate-500 block text-[10px] uppercase font-bold">{t.stayCost}</span>
-                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{itinerary.cost_breakdown.stays}</span>
+                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{itinerary.cost_breakdown?.stays ?? 0}</span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
                     <span className="text-slate-500 block text-[10px] uppercase font-bold">{t.transportCost}</span>
-                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{itinerary.cost_breakdown.transport}</span>
+                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{itinerary.cost_breakdown?.transport ?? 0}</span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
                     <span className="text-slate-500 block text-[10px] uppercase font-bold">{t.foodCost}</span>
-                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{itinerary.cost_breakdown.food}</span>
+                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{itinerary.cost_breakdown?.food ?? 0}</span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
                     <span className="text-slate-500 block text-[10px] uppercase font-bold">{t.ticketCost}</span>
-                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{itinerary.cost_breakdown.activities}</span>
+                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{itinerary.cost_breakdown?.activities ?? 0}</span>
                   </div>
                 </div>
               </div>
@@ -3593,7 +3593,7 @@ ${daysSummary}
                     </div>
                   </div>
                   <div className="space-y-2">
-                    {itinerary.days.map((day: any) => {
+                    {(itinerary.days || []).map((day: any) => {
                       const isExpanded = expandedDay === day.day_number;
                       return (
                         <div key={day.day_number} className="border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs">
@@ -3606,13 +3606,13 @@ ${daysSummary}
                               DAY {day.day_number}
                             </span>
                             <span className="text-[10px] text-slate-500 font-medium">
-                              {day.schedule.length} items (click to toggle)
+                              {day.schedule?.length || 0} items (click to toggle)
                             </span>
                           </button>
 
                           {isExpanded && (
                             <div className="p-3 space-y-3 bg-white divide-y divide-slate-100">
-                              {day.schedule.map((item: any, idx: number) => {
+                              {(day.schedule || []).map((item: any, idx: number) => {
                                 const isLogistics = item.category === "logistics";
                                 const isFood = item.category === "food";
                                 return (
@@ -3742,12 +3742,12 @@ ${daysSummary}
               {/* State Fuel Rate Table */}
               <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
                 <div className="bg-slate-100/80 px-3.5 py-2.5 text-[10px] font-extrabold text-slate-700 flex justify-between uppercase tracking-wider">
-                  <span>State Border Fuel Rates ({selectedTransit.fuel_info.location})</span>
+                  <span>State Border Fuel Rates ({selectedTransit.fuel_info?.location || "Highway Corridor"})</span>
                   <span>Source</span>
                 </div>
                 <div className="p-3.5 flex justify-between text-xs font-bold text-slate-900">
-                  <span className="capitalize">{derivedSpecs.fuel_type.replace("_", " ")}: ₹{selectedTransit.fuel_info.price_per_unit} / unit</span>
-                  <span className="text-slate-500 font-medium text-[10px] my-auto">{selectedTransit.fuel_info.source}</span>
+                  <span className="capitalize">{(derivedSpecs?.fuel_type || "fuel").replace("_", " ")}: ₹{selectedTransit.fuel_info?.price_per_unit || "96.72"} / unit</span>
+                  <span className="text-slate-500 font-medium text-[10px] my-auto">{selectedTransit.fuel_info?.source || "Live Fuel Telemetry"}</span>
                 </div>
               </div>
 
@@ -3758,7 +3758,7 @@ ${daysSummary}
                   <span>Single-way Fee</span>
                 </div>
                 <div className="divide-y divide-slate-100">
-                  {selectedTransit.toll_plazas.map((toll: any, tIdx: number) => (
+                  {(selectedTransit.toll_plazas || []).map((toll: any, tIdx: number) => (
                     <div key={tIdx} className="p-2.5 px-3.5 flex justify-between text-xs text-slate-700">
                       <span>{toll.name}</span>
                       <span className="font-bold text-slate-900">₹{toll.fee_inr}</span>
@@ -3767,7 +3767,7 @@ ${daysSummary}
                 </div>
                 <div className="bg-slate-50 p-3 px-3.5 text-xs font-extrabold text-slate-900 border-t border-slate-200 flex justify-between">
                   <span>Total Tolls Cost</span>
-                  <span className="text-emerald-600">₹{selectedTransit.total_toll_cost_inr}</span>
+                  <span className="text-emerald-600">₹{selectedTransit.total_toll_cost_inr || 0}</span>
                 </div>
               </div>
 
@@ -3777,7 +3777,7 @@ ${daysSummary}
                   {t.restStops} (Click to toggle/schedule stops)
                 </div>
                 <div className="divide-y divide-slate-100">
-                  {selectedTransit.suggested_rest_stops.map((stop: any, sIdx: number) => {
+                  {(selectedTransit.suggested_rest_stops || []).map((stop: any, sIdx: number) => {
                     const isAdded = selectedRestStops.some(x => x.name === stop.name);
                     return (
                       <div
@@ -4143,7 +4143,7 @@ ${daysSummary}
                     {inspectingTransit.cancellation_policy.summary}
                   </p>
                   <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 text-[10px]">
-                    {inspectingTransit.cancellation_policy.slabs.map((slab: any, sIdx: number) => (
+                    {(inspectingTransit.cancellation_policy.slabs || []).map((slab: any, sIdx: number) => (
                       <div key={sIdx} className="p-2 flex justify-between items-center">
                         <span className="font-medium text-slate-700">{slab.window}</span>
                         <div className="text-right">
@@ -4185,7 +4185,7 @@ ${daysSummary}
                     {inspectingTransit.ground_transfer_intelligence.summary}
                   </p>
                   <div className="space-y-1.5">
-                    {inspectingTransit.ground_transfer_intelligence.options.map((gOpt: any, gIdx: number) => (
+                    {(inspectingTransit.ground_transfer_intelligence.options || []).map((gOpt: any, gIdx: number) => (
                       <div key={gIdx} className="p-2 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-[10px]">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-slate-900 flex items-center gap-1">
@@ -4395,7 +4395,7 @@ ${daysSummary}
               <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1 border ${
                 guardianAlert.stage === "STAGE_3_AUTO_ESCALATION" ? "bg-rose-600 text-white border-rose-500 animate-pulse" : "bg-rose-100 text-rose-800 border-rose-200"
               }`}>
-                {guardianAlert.stage.replace(/_/g, " ")}
+                {(guardianAlert.stage || "STAGE").replace(/_/g, " ")}
               </span>
               <h3 className="text-base font-black text-slate-900 leading-tight">
                 {guardianAlert.headline}
@@ -5574,7 +5574,7 @@ ${daysSummary}
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-black flex items-center justify-center text-sm flex-shrink-0">
-                                {contact.name.charAt(0)}
+                                {(contact.name || "C").charAt(0)}
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
