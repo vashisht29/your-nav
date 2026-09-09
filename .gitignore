@@ -15,3 +15,10 @@ frontend/out/
 .idea/
 .vscode/
 backend/catboost_info/
+
+# Proprietary ML Training Pipelines, Datasets & Internal Benchmarks
+notebooks/
+backend/train_models.py
+backend/deep_system_stress_suite.py
+backend/comprehensive_system_benchmark.py
+backend/data/
