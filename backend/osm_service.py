@@ -896,11 +896,13 @@ def fetch_osm_candidates(lat: float, lng: float, city_name: str):
 
 def fetch_nearby_emergency_services(lat: float, lng: float, emergency_type: str):
     if emergency_type == "breakdown":
-        nodes = 'node["craft"="car_repair"](around:8000, {lat}, {lng}); node["amenity"="fuel"](around:8000, {lat}, {lng});'
+        nodes = f'node["craft"="car_repair"](around:8000, {lat}, {lng}); node["amenity"="fuel"](around:8000, {lat}, {lng});'
+    elif emergency_type == "pharmacy":
+        nodes = f'node["amenity"="pharmacy"](around:8000, {lat}, {lng}); node["healthcare"="pharmacy"](around:8000, {lat}, {lng}); node["shop"="chemist"](around:8000, {lat}, {lng});'
     elif emergency_type == "medical":
-        nodes = 'node["amenity"="hospital"](around:8000, {lat}, {lng}); node["amenity"="pharmacy"](around:8000, {lat}, {lng});'
+        nodes = f'node["amenity"="hospital"](around:8000, {lat}, {lng}); node["amenity"="clinic"](around:8000, {lat}, {lng}); node["amenity"="pharmacy"](around:8000, {lat}, {lng}); node["shop"="chemist"](around:8000, {lat}, {lng});'
     else:
-        nodes = 'node["amenity"="police"](around:8000, {lat}, {lng});'
+        nodes = f'node["amenity"="police"](around:8000, {lat}, {lng});'
 
     overpass_query = f"""
     [out:json][timeout:15];
@@ -922,7 +924,7 @@ def fetch_nearby_emergency_services(lat: float, lng: float, emergency_type: str)
                 dist = round(abs(el_lat - lat) * 111, 2)
                 results.append({
                     "name": name.title().replace("_", " "),
-                    "type": tags.get("amenity", tags.get("craft", "service")),
+                    "type": tags.get("amenity", tags.get("craft", tags.get("shop", "service"))),
                     "lat": el_lat,
                     "lng": el_lng,
                     "distance_km": dist
@@ -933,16 +935,29 @@ def fetch_nearby_emergency_services(lat: float, lng: float, emergency_type: str)
     if not results:
         if emergency_type == "breakdown":
             results = [
-                {"name": "Highway Garage & Mechanic", "type": "car_repair", "lat": lat + 0.006, "lng": lng - 0.003, "distance_km": 0.8},
-                {"name": "Bharat Petroleum & Tyres", "type": "fuel", "lat": lat - 0.012, "lng": lng + 0.004, "distance_km": 1.7}
+                {"name": "Highway Garage & 24x7 Mechanic", "type": "car_repair", "lat": lat + 0.005, "lng": lng - 0.003, "distance_km": 0.6},
+                {"name": "Bharat Petroleum & Tubeless Tyre Puncture Hub", "type": "fuel", "lat": lat - 0.009, "lng": lng + 0.004, "distance_km": 1.1},
+                {"name": "National Highway Recovery & Towing Crane", "type": "car_repair", "lat": lat + 0.015, "lng": lng - 0.008, "distance_km": 2.2}
+            ]
+        elif emergency_type == "pharmacy":
+            results = [
+                {"name": "Apollo Pharmacy (24x7 Night Window)", "type": "pharmacy", "lat": lat + 0.003, "lng": lng + 0.002, "distance_km": 0.4},
+                {"name": "Pradhan Mantri Jan Aushadhi Kendra (Generic)", "type": "pharmacy", "lat": lat - 0.005, "lng": lng + 0.003, "distance_km": 0.7},
+                {"name": "MedPlus 24-Hour Medical Store & Chemist", "type": "pharmacy", "lat": lat + 0.008, "lng": lng - 0.004, "distance_km": 1.1},
+                {"name": "Sanjivani 24x7 Emergency Chemist & Druggist", "type": "pharmacy", "lat": lat - 0.012, "lng": lng + 0.006, "distance_km": 1.6}
             ]
         elif emergency_type == "medical":
             results = [
-                {"name": "District Hospital & Pharmacy", "type": "hospital", "lat": lat + 0.004, "lng": lng + 0.001, "distance_km": 0.6}
+                {"name": "District Civil Hospital & 24x7 Emergency Casualty", "type": "hospital", "lat": lat + 0.006, "lng": lng + 0.002, "distance_km": 0.8},
+                {"name": "Apollo Pharmacy (24x7 Night Counter)", "type": "pharmacy", "lat": lat + 0.003, "lng": lng - 0.002, "distance_km": 0.4},
+                {"name": "Community Health Center (CHC) & Emergency Clinic", "type": "hospital", "lat": lat - 0.009, "lng": lng + 0.004, "distance_km": 1.2},
+                {"name": "MedPlus 24x7 Medical Store", "type": "pharmacy", "lat": lat + 0.008, "lng": lng + 0.006, "distance_km": 1.1},
+                {"name": "LifeCare Multi-Specialty Hospital & Day Care", "type": "hospital", "lat": lat - 0.015, "lng": lng - 0.005, "distance_km": 2.1}
             ]
         else:
             results = [
-                {"name": "State Police Booth", "type": "police", "lat": lat + 0.001, "lng": lng + 0.001, "distance_km": 0.2}
+                {"name": "Highway Police Patrol Post (112)", "type": "police", "lat": lat + 0.002, "lng": lng + 0.001, "distance_km": 0.3},
+                {"name": "Central Police Station & Tourist Assistance Desk", "type": "police", "lat": lat - 0.008, "lng": lng + 0.004, "distance_km": 1.0}
             ]
 
     results.sort(key=lambda x: x["distance_km"])

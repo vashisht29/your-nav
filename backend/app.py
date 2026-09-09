@@ -2,10 +2,11 @@
 
 import os
 import math
+import urllib.parse
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -494,29 +495,146 @@ class SOSQuery(BaseModel):
     lng: Optional[float] = 77.2090
     type: Optional[str] = "medical"
     destination: Optional[str] = "Haridwar"
+    origin: Optional[str] = "Delhi"
+    location_name: Optional[str] = None
 
 from emergency_engine import get_destination_emergency_intel
+from guardian_agent import guardian_agent
 
 @app.post("/api/sos")
 def get_emergency_services(req: SOSQuery):
     dest_name = req.destination or "India"
-    sos_intel = get_destination_emergency_intel(dest_name, req.lat, req.lng)
-    osm_services = fetch_nearby_emergency_services(req.lat or 28.6139, req.lng or 77.2090, req.type or "medical")
+    user_lat = req.lat if req.lat is not None else 28.6139
+    user_lng = req.lng if req.lng is not None else 77.2090
     
+    # 1. Dynamic spatial lookup for user's moving location
+    route_services = guardian_agent.find_nearest_on_route_services(user_lat, user_lng)
+    current_segment = req.location_name or route_services["current_road_segment"]
+    
+    # 2. Regional emergency intel (SDRF, regional lines)
+    sos_intel = get_destination_emergency_intel(dest_name, user_lat, user_lng)
+    
+    # 3. Overpass OSM nearby services around (lat, lng)
+    osm_services = fetch_nearby_emergency_services(user_lat, user_lng, req.type or "medical")
+    
+    # Combine destination-verified hospitals with closest route-spatial hospitals
+    combined_hospitals = []
+    seen_hosp = set()
+    for h in sos_intel.get("hospitals", []):
+        k = h.get("name", "").strip().lower()
+        if k and k not in seen_hosp:
+            seen_hosp.add(k)
+            combined_hospitals.append(h)
+    for h in route_services.get("hospitals", []):
+        k = h.get("name", "").strip().lower()
+        if k and k not in seen_hosp:
+            seen_hosp.add(k)
+            combined_hospitals.append(h)
+    final_hospitals = combined_hospitals[:6] if combined_hospitals else route_services.get("hospitals", [])
+
+    # Combine destination-verified 24x7 pharmacies with route-spatial pharmacies
+    combined_pharmacies = []
+    seen_pharm = set()
+    for m in sos_intel.get("medicine_stores", []):
+        k = m.get("name", "").strip().lower()
+        if k and k not in seen_pharm:
+            seen_pharm.add(k)
+            combined_pharmacies.append(m)
+    for m in route_services.get("medicine_stores", []):
+        k = m.get("name", "").strip().lower()
+        if k and k not in seen_pharm:
+            seen_pharm.add(k)
+            combined_pharmacies.append(m)
+    final_medicine_stores = combined_pharmacies[:6] if combined_pharmacies else route_services.get("medicine_stores", [])
+
+    nearest_hosp = route_services["nearest_hospital"]
+    if final_hospitals:
+        top_hosp = final_hospitals[0]
+        try:
+            top_hosp_km = float(str(top_hosp.get("distance", "999")).replace("km", "").split("(")[0].strip())
+            if top_hosp_km < nearest_hosp.get("distance_km", 999):
+                nearest_hosp = {
+                    "name": top_hosp["name"],
+                    "phone": top_hosp["phone"],
+                    "distance_km": top_hosp_km,
+                    "address": top_hosp["address"],
+                    "services": top_hosp.get("services", "24x7 Casualty & Emergency Care"),
+                    "is_apex": "Apex" in top_hosp["name"] or "Medical College" in top_hosp["name"]
+                }
+        except Exception:
+            pass
+
+    nearest_pharm = route_services.get("nearest_pharmacy")
+    if final_medicine_stores:
+        top_med = final_medicine_stores[0]
+        try:
+            top_med_dist_str = str(top_med.get("distance", "999"))
+            if "meter" in top_med_dist_str:
+                top_med_km = float(top_med_dist_str.replace("meters", "").replace("meter", "").strip()) / 1000.0
+            else:
+                top_med_km = float(top_med_dist_str.replace("km", "").split("(")[0].strip())
+            
+            cur_pharm_dist = nearest_pharm.get("distance_km", 999) if nearest_pharm else 999
+            if top_med_km < cur_pharm_dist:
+                nearest_pharm = {
+                    "name": top_med["name"],
+                    "phone": top_med["phone"],
+                    "distance_km": top_med_km,
+                    "address": top_med["address"],
+                    "timings": top_med.get("timings", "Open 24 Hours"),
+                    "available_medicines": top_med.get("available_medicines", "Emergency Medicines")
+                }
+        except Exception:
+            pass
+    if not nearest_pharm:
+        nearest_pharm = {"name": "Local 24x7 Pharmacy", "phone": "112", "distance_km": 0.5}
+
+    # 4. Generate dynamic live GPS WhatsApp & SMS beacon
+    maps_link = f"https://maps.google.com/?q={user_lat:.4f},{user_lng:.4f}"
+    beacon_msg = (
+        f"🚨 EMERGENCY ASSISTANCE NEEDED near {current_segment}.\n"
+        f"• Live GPS Location: {maps_link} ({user_lat:.4f}° N, {user_lng:.4f}° E)\n"
+        f"• Nearest Hospital: {nearest_hosp['name']} ({nearest_hosp['distance_km']} km, Ph: {nearest_hosp['phone']})\n"
+        f"• Nearest 24x7 Medicine Store: {nearest_pharm.get('name')} (Ph: {nearest_pharm.get('phone', '112')})\n"
+        f"• Nearest Police Station: {route_services['nearest_police']['station']} (Ph: 112)\n"
+        f"Please dispatch medical assistance or call 112 immediately."
+    )
+    encoded_beacon = urllib.parse.quote(beacon_msg)
+
     return {
         "status": "active",
         "emergency_number": "112",
-        "destination": sos_intel["destination"],
-        "region": sos_intel["region"],
+        "destination": dest_name.title(),
+        "region": sos_intel.get("region", "National Highway Corridor"),
+        "live_location": {
+            "lat": user_lat,
+            "lng": user_lng,
+            "road_segment": current_segment,
+            "maps_url": maps_link
+        },
+        "nearest_hospital": nearest_hosp,
+        "nearest_pharmacy": nearest_pharm,
+        "nearest_police": route_services["nearest_police"],
         "national_helplines": sos_intel["national_helplines"],
-        "sdrf_mountain_rescue": sos_intel["sdrf_mountain_rescue"],
-        "trauma_centers": sos_intel["trauma_centers"],
-        "local_police": sos_intel["local_police"],
-        "tourist_police": sos_intel["tourist_police"],
-        "gps_beacon": sos_intel["gps_beacon"],
-        "first_aid_protocols": sos_intel["first_aid_protocols"],
+        "sdrf_mountain_rescue": sos_intel.get("sdrf_mountain_rescue"),
+        "hospitals": final_hospitals,
+        "medicine_stores": final_medicine_stores,
+        "trauma_centers": final_hospitals, # Backward compatibility for existing UI
+        "local_police": route_services["nearest_police"],
+        "tourist_police": sos_intel.get("tourist_police", {"location": "Highway Tourist Police Desk", "phone": "1363"}),
+        "gps_beacon": {
+            "message": beacon_msg,
+            "sms_link": f"sms:112?body={encoded_beacon}",
+            "whatsapp_link": f"https://api.whatsapp.com/send?text={encoded_beacon}"
+        },
+        "first_aid_protocols": sos_intel.get("first_aid_protocols", []),
         "services": osm_services
     }
+
+@app.get("/api/sos/waypoints")
+def get_sos_corridor_waypoints(origin: str = "Delhi", destination: str = "Haridwar"):
+    waypoints = guardian_agent.get_corridor_waypoints(origin, destination)
+    return {"status": "success", "origin": origin, "destination": destination, "waypoints": waypoints}
 
 @app.post("/api/webhooks/payment")
 async def process_payment(request: Request):
@@ -567,7 +685,7 @@ def request_unsupported_location(req: RequestLocationBody):
 
 from flight_engine import get_sub_region_recommendation
 
-from guardian_agent import guardian_agent
+from guardian_agent import guardian_agent, TRAINED_TELEMETRY_SCENARIOS
 
 class GuardianTelemetryRequest(BaseModel):
     lat: float = 28.9845
@@ -578,6 +696,28 @@ class GuardianTelemetryRequest(BaseModel):
     destination: Optional[str] = "Haridwar"
     transit_mode: Optional[str] = "car"
     transit_details: Optional[str] = ""
+    is_night: Optional[bool] = False
+    sudden_impact: Optional[bool] = False
+    is_rest_stop_area: Optional[bool] = False
+    altitude_m: Optional[float] = 0.0
+    is_desert_zone: Optional[bool] = False
+    battery_percent: Optional[float] = 85.0
+    temp_c: Optional[float] = 25.0
+    is_tunnel_zone: Optional[bool] = False
+    is_forest_naxal_zone: Optional[bool] = False
+    is_landslide_zone: Optional[bool] = False
+    bluetooth_failed: Optional[bool] = False
+    is_isolated_ravine: Optional[bool] = False
+    is_silent_zone_hospital: Optional[bool] = False
+    is_city_zone: Optional[bool] = False
+    is_corrupt_mesh_packet: Optional[bool] = False
+    is_phone_shutdown: Optional[bool] = False
+    device_offline_duration_mins: Optional[float] = 0.0
+    is_hypoxia_risk: Optional[bool] = False
+    is_water_submersion_hazard: Optional[bool] = False
+    route_deviation_km: Optional[float] = 0.0
+    is_thermal_runaway_fire: Optional[bool] = False
+    is_vehicle_overturned: Optional[bool] = False
 
 class GuardianEmergencyContact(BaseModel):
     name: str
@@ -585,6 +725,12 @@ class GuardianEmergencyContact(BaseModel):
     relationship: str
     notify_sms: bool = True
     notify_whatsapp: bool = True
+
+class GuardianScenarioSimulationRequest(BaseModel):
+    scenario_id: str
+    destination: Optional[str] = "Haridwar"
+    lat: Optional[float] = 28.9845
+    lng: Optional[float] = 77.7064
 
 @app.post("/api/guardian/telemetry")
 def evaluate_guardian_telemetry(req: GuardianTelemetryRequest):
@@ -596,9 +742,60 @@ def evaluate_guardian_telemetry(req: GuardianTelemetryRequest):
         traffic_congestion_index=req.traffic_congestion_index,
         destination=req.destination,
         transit_mode=req.transit_mode,
-        transit_details=req.transit_details
+        transit_details=req.transit_details,
+        is_night=req.is_night or False,
+        sudden_impact=req.sudden_impact or False,
+        is_rest_stop_area=req.is_rest_stop_area or False,
+        altitude_m=req.altitude_m or 0.0,
+        is_desert_zone=req.is_desert_zone or False,
+        battery_percent=req.battery_percent if req.battery_percent is not None else 85.0,
+        temp_c=req.temp_c if req.temp_c is not None else 25.0,
+        is_tunnel_zone=req.is_tunnel_zone or False,
+        is_forest_naxal_zone=req.is_forest_naxal_zone or False,
+        is_landslide_zone=req.is_landslide_zone or False,
+        bluetooth_failed=req.bluetooth_failed or False,
+        is_isolated_ravine=req.is_isolated_ravine or False,
+        is_silent_zone_hospital=req.is_silent_zone_hospital or False,
+        is_city_zone=req.is_city_zone or False,
+        is_corrupt_mesh_packet=req.is_corrupt_mesh_packet or False,
+        is_phone_shutdown=req.is_phone_shutdown or False,
+        device_offline_duration_mins=req.device_offline_duration_mins or 0.0,
+        is_hypoxia_risk=req.is_hypoxia_risk or False,
+        is_water_submersion_hazard=req.is_water_submersion_hazard or False,
+        route_deviation_km=req.route_deviation_km or 0.0,
+        is_thermal_runaway_fire=req.is_thermal_runaway_fire or False,
+        is_vehicle_overturned=req.is_vehicle_overturned or False
     )
     return {"status": "success", "guardian_evaluation": result}
+
+@app.get("/api/guardian/training-scenarios")
+def get_guardian_training_scenarios():
+    return {
+        "status": "success",
+        "scenarios": TRAINED_TELEMETRY_SCENARIOS
+    }
+
+@app.get("/api/guardian/training-status")
+def get_guardian_training_status():
+    evaluation = guardian_agent.train_and_evaluate_model()
+    return {
+        "status": "success",
+        "training_report": evaluation,
+        "metadata": guardian_agent.model_metadata
+    }
+
+@app.post("/api/guardian/simulate-scenario")
+def simulate_guardian_scenario(req: GuardianScenarioSimulationRequest):
+    result = guardian_agent.simulate_trained_scenario(
+        scenario_id=req.scenario_id,
+        destination=req.destination or "Haridwar",
+        lat=req.lat or 28.9845,
+        lng=req.lng or 77.7064
+    )
+    return {
+        "status": "success",
+        "simulation": result
+    }
 
 @app.get("/api/guardian/contacts")
 def get_guardian_contacts():
@@ -608,6 +805,151 @@ def get_guardian_contacts():
 def add_guardian_contact(contact: GuardianEmergencyContact):
     guardian_agent.emergency_contacts.append(contact.dict())
     return {"status": "success", "contacts": guardian_agent.emergency_contacts}
+
+# =========================================================================
+# 📡 SAFAR GUARDIAN (सफ़र गार्जियन) — LIVE TRIP COMPANION & MILESTONE ALERTS
+# =========================================================================
+from trip_share_engine import (
+    create_safar_guardian_session,
+    advance_safar_milestone,
+    ACTIVE_SAFAR_SESSIONS,
+    generate_compact_2g_sms_payload,
+    generate_dead_reckoning_transit_window,
+    get_zero_network_survival_toolkit,
+    simulate_p2p_mesh_relay_hop
+)
+
+class SafarShareRequest(BaseModel):
+    origin: str = "Delhi"
+    destination: str = "Darjeeling"
+    traveler_name: Optional[str] = "Rahul Sharma"
+    transport_mode: Optional[str] = "flight"
+    departure_date: Optional[str] = None
+    transit_details: Optional[Dict[str, Any]] = None
+    stay_name: Optional[str] = None
+    primary_contact: Optional[Dict[str, str]] = None
+
+class SafarMilestoneAdvanceRequest(BaseModel):
+    track_id: str
+    target_milestone_id: Optional[str] = None
+
+class SafarDeadReckoningRequest(BaseModel):
+    track_id: str = "GP-SAMPLE"
+    origin: Optional[str] = "Leh"
+    destination: Optional[str] = "Nubra Valley"
+    corridor_zone: Optional[str] = "Khardung La Valley No-Signal Zone"
+    lat: Optional[float] = 34.2787
+    lng: Optional[float] = 77.6047
+    battery: Optional[int] = 82
+    speed: Optional[float] = 45.0
+    traveler_name: Optional[str] = "Rahul"
+
+@app.post("/api/family-share/create-session")
+@app.post("/api/guardian-protective/create-session")
+@app.post("/api/safar-guardian/create-session")
+def api_create_safar_session(req: SafarShareRequest):
+    session = create_safar_guardian_session(
+        origin=req.origin,
+        destination=req.destination,
+        traveler_name=req.traveler_name or "Rahul Sharma",
+        transport_mode=req.transport_mode or "flight",
+        departure_date=req.departure_date,
+        transit_details=req.transit_details,
+        stay_name=req.stay_name,
+        primary_contact=req.primary_contact
+    )
+    return {"status": "success", "safar_session": session}
+
+@app.get("/api/family-share/session/{track_id}")
+@app.get("/api/guardian-protective/session/{track_id}")
+@app.get("/api/safar-guardian/session/{track_id}")
+def api_get_safar_session(track_id: str):
+    session = ACTIVE_SAFAR_SESSIONS.get(track_id)
+    if not session:
+        # Generate on-demand fallback session preserving the requested track_id and route
+        track_upper = track_id.upper()
+        if "GOA" in track_upper:
+            orig, dest = "Mumbai", "Goa"
+        elif "MANA" in track_upper:
+            orig, dest = "Delhi", "Manali"
+        elif "JAIP" in track_upper:
+            orig, dest = "Delhi", "Jaipur"
+        else:
+            orig, dest = "Mumbai", "Goa"
+        session = create_safar_guardian_session(orig, dest, track_id=track_id)
+    return {"status": "success", "safar_session": session}
+
+@app.post("/api/family-share/advance-milestone")
+@app.post("/api/guardian-protective/advance-milestone")
+@app.post("/api/safar-guardian/advance-milestone")
+def api_advance_safar_milestone(req: SafarMilestoneAdvanceRequest):
+    result = advance_safar_milestone(track_id=req.track_id, target_milestone_id=req.target_milestone_id)
+    return {"status": "success", "update": result}
+
+@app.post("/api/family-share/offline-dead-reckoning")
+def api_offline_dead_reckoning(req: SafarDeadReckoningRequest):
+    dr = generate_dead_reckoning_transit_window(
+        track_id=req.track_id,
+        origin=req.origin or "Leh",
+        destination=req.destination or "Nubra Valley",
+        corridor_zone=req.corridor_zone or "Khardung La Valley No-Signal Zone"
+    )
+    sms = generate_compact_2g_sms_payload(
+        track_id=req.track_id,
+        lat=req.lat or 34.2787,
+        lng=req.lng or 77.6047,
+        battery=req.battery or 82,
+        speed=req.speed or 45.0,
+        transit_status=req.corridor_zone or "In Mountain Transit",
+        traveler_name=req.traveler_name or "Rahul"
+    )
+    return {
+        "status": "success",
+        "dead_reckoning": dr,
+        "offline_sms": sms
+    }
+
+@app.get("/api/guardian/stress-test-scenarios")
+def api_get_stress_test_scenarios():
+    return {
+        "status": "success",
+        "total_scenarios": len(TRAINED_TELEMETRY_SCENARIOS),
+        "model_version": guardian_agent.model_metadata["version"],
+        "scenarios": TRAINED_TELEMETRY_SCENARIOS
+    }
+
+
+class ZeroNetworkRequest(BaseModel):
+    track_id: Optional[str] = "GP-LEH-9921"
+    lat: Optional[float] = 34.2787
+    lng: Optional[float] = 77.6047
+    altitude_m: Optional[float] = 4850.0
+    traveler_name: Optional[str] = "Rahul"
+    emergency_contact: Optional[str] = "+91 98765 43210"
+
+class MeshRelaySimulateRequest(BaseModel):
+    track_id: Optional[str] = "GP-LEH-9921"
+    forwarder_name: Optional[str] = "Indian Army Himank Convoy #12"
+
+@app.post("/api/zero-network/protocol")
+def api_zero_network_protocol(req: ZeroNetworkRequest):
+    toolkit = get_zero_network_survival_toolkit(
+        track_id=req.track_id or "GP-LEH-9921",
+        lat=req.lat or 34.2787,
+        lng=req.lng or 77.6047,
+        altitude_m=req.altitude_m or 4850.0,
+        traveler_name=req.traveler_name or "Rahul",
+        emergency_contact=req.emergency_contact or "+91 98765 43210"
+    )
+    return {"status": "success", "toolkit": toolkit}
+
+@app.post("/api/zero-network/simulate-mesh-hop")
+def api_zero_network_mesh_hop(req: MeshRelaySimulateRequest):
+    result = simulate_p2p_mesh_relay_hop(
+        track_id=req.track_id or "GP-LEH-9921",
+        forwarder_name=req.forwarder_name or "Indian Army Himank Convoy #12"
+    )
+    return {"status": "success", "relay_result": result}
 
 if __name__ == "__main__":
     import uvicorn

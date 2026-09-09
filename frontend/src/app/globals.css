@@ -1,21 +1,255 @@
-@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+:root {
+  --font-caveat: 'Caveat', cursive, sans-serif;
+  --font-space-grotesk: 'Space Grotesk', -apple-system, sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', -apple-system, sans-serif;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
 }
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+
+/* Hide scrollbars everywhere for ultra-clean seamless aesthetic */
+* {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
 }
+
+/* 3D Apple Cursive Domino Wave Keyframes */
+@keyframes appleLetterTumble {
+  0%, 14% {
+    transform: rotateX(0deg) translateY(0px) translateZ(0px);
+  }
+  22% {
+    transform: rotateX(-16deg) translateY(-6px) translateZ(12px);
+  }
+  38% {
+    transform: rotateX(92deg) translateY(62px) translateZ(-38px);
+  }
+  56% {
+    transform: rotateX(188deg) translateY(88px) translateZ(-65px) scale(0.95);
+  }
+  74% {
+    transform: rotateX(280deg) translateY(20px) translateZ(-25px);
+  }
+  88% {
+    transform: rotateX(368deg) translateY(-8px) translateZ(10px);
+  }
+  100% {
+    transform: rotateX(360deg) translateY(0px) translateZ(0px);
+  }
+}
+
+.apple-cursive-wave {
+  font-family: 'Caveat', cursive, -apple-system, sans-serif;
+  transform-style: preserve-3d;
+}
+
+.letter-box {
+  display: inline-block;
+  transform-style: preserve-3d;
+  transform-origin: 50% 88% -22px;
+  margin: 0 -2px;
+  padding: 0 1px;
+  animation: appleLetterTumble 2.5s cubic-bezier(0.34, 1.25, 0.64, 1) infinite;
+  text-shadow:
+    0 1px 0 #e2e8f0,
+    0 2px 0 #cbd5e1,
+    0 3px 0 #94a3b8,
+    0 4px 0 #64748b,
+    0 5px 0 #334155,
+    0 8px 16px rgba(0, 0, 0, 0.95),
+    0 15px 30px rgba(0, 0, 0, 0.9),
+    0 0 35px rgba(255, 255, 255, 0.35);
+}
+
+.letter-box:nth-child(1) { animation-delay: 0.0s; }
+.letter-box:nth-child(2) { animation-delay: 0.14s; }
+.letter-box:nth-child(3) { animation-delay: 0.28s; }
+.letter-box:nth-child(4) { animation-delay: 0.42s; }
+.letter-box:nth-child(5) { animation-delay: 0.56s; }
+
+/* Apple Liquid Glass utilities */
+.liquid-glass-panel {
+  background: rgba(13, 16, 25, 0.7);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 24px 60px rgba(0, 0, 0, 0.7);
+}
+
+.liquid-glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Leaflet dark theme popups */
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 18, 28, 0.92) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #f5f5f7 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(15, 18, 28, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+.leaflet-popup-content {
+  color: #f5f5f7 !important;
+  margin: 10px 14px !important;
+}
+
+.leaflet-container {
+  background-color: #08090e !important;
+}
+
+/* Kinetic Micro-Animations for SOS Beacon & Family Sentinel */
+@keyframes beaconRadar {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7), 0 0 20px rgba(244, 63, 94, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(244, 63, 94, 0), 0 0 30px rgba(244, 63, 94, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0), 0 0 20px rgba(244, 63, 94, 0.4);
+  }
+}
+
+.animate-beacon-radar {
+  animation: beaconRadar 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes satelliteFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) rotate(6deg) scale(1.05);
+  }
+}
+
+.animate-satellite {
+  animation: satelliteFloat 3s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes appleSpringIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-apple-spring {
+  animation: appleSpringIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes emeraldPulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(16, 185, 129, 0.55);
+  }
+}
+
+.animate-emerald-pulse-glow {
+  animation: emeraldPulseGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes indigoPulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.55);
+  }
+}
+
+.animate-indigo-pulse-glow {
+  animation: indigoPulseGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes radarSweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-radar-sweep {
+  animation: radarSweep 5s linear infinite;
+}
+
+@keyframes pulseTrack {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    top: 96%;
+    opacity: 0;
+  }
+}
+
+.animate-pulse-track {
+  animation: pulseTrack 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes laserShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-laser-shimmer {
+  background-size: 200% auto;
+  animation: laserShimmer 3.5s linear infinite;
+}
+

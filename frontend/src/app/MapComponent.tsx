@@ -180,16 +180,23 @@ export default function MapComponent({ hotel, days, emergencyServices, flight }:
   const center = allCoords.length > 0 ? allCoords[0] : defaultCenter;
 
   return (
-    <div className="w-full h-full min-h-[400px] rounded-xl overflow-hidden shadow-inner relative z-0">
+    <div className="w-full h-full min-h-[420px] rounded-2xl overflow-hidden border border-white/[0.1] shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative z-0 bg-[#090b10]">
       <MapContainer
         center={center}
         zoom={12}
-        style={{ height: "100%", width: "100%" }}
+        style={{ height: "100%", width: "100%", background: "#090b10" }}
         scrollWheelZoom={true}
       >
+        {/* Sleek Dark Canvas Map Tiles — 100% Watermark Free */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={16}
+        />
+        <TileLayer
+          attribution=""
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={16}
         />
 
         {markers.map((marker, idx) => {
@@ -201,10 +208,10 @@ export default function MapComponent({ hotel, days, emergencyServices, flight }:
 
           return (
             <Marker key={idx} position={[marker.lat, marker.lng]} icon={icon}>
-              <Popup>
-                <div className="text-xs">
-                  <span className="font-semibold text-slate-800">{marker.name}</span>
-                  <p className="text-slate-500 m-0">{marker.info}</p>
+              <Popup className="dark-leaflet-popup">
+                <div className="text-xs p-1">
+                  <span className="font-bold text-slate-900 block">{marker.name}</span>
+                  <p className="text-slate-600 m-0 mt-0.5">{marker.info}</p>
                 </div>
               </Popup>
             </Marker>
@@ -215,10 +222,10 @@ export default function MapComponent({ hotel, days, emergencyServices, flight }:
         {flightCoords.length === 2 && (
           <Polyline
             positions={flightCoords}
-            color="#4338ca"
-            weight={5}
-            opacity={0.9}
-            dashArray="10, 10"
+            color="#a78bfa"
+            weight={4}
+            opacity={0.95}
+            dashArray="8, 8"
           />
         )}
 
@@ -226,19 +233,19 @@ export default function MapComponent({ hotel, days, emergencyServices, flight }:
         {osrmRoute.length > 0 ? (
           <Polyline
             positions={osrmRoute}
-            color="#0ea5e9"
+            color="#38bdf8"
             weight={5}
-            opacity={0.9}
+            opacity={0.95}
           />
         ) : (
           /* Fallback straight dashed lines */
           allCoords.length > 1 && (
             <Polyline
               positions={allCoords.filter(c => !flightCoords.includes(c))}
-              color="#0ea5e9"
+              color="#38bdf8"
               weight={4}
-              opacity={0.8}
-              dashArray="5, 5"
+              opacity={0.85}
+              dashArray="6, 6"
             />
           )
         )}

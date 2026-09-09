@@ -177,6 +177,8 @@ def generate_live_trains(origin_name: str, dest_name: str, dep_date: str, ret_da
     dest_stn = find_nearest_railhead(dest_name)
 
     dist_km = calculate_rail_distance_km(orig_stn["lat"], orig_stn["lng"], dest_stn["lat"], dest_stn["lng"])
+    is_connecting = False
+    ground_note = None
 
     TRAIN_FLEET = [
         {
