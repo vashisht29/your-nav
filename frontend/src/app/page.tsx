@@ -1717,11 +1717,12 @@ ${daysSummary}
     updated.days.forEach((day: any) => {
       let accumulatedShiftMins = 0;
       day.schedule = day.schedule.map((item: any) => {
+        const itemName = (item.name || "").toLowerCase();
         const isTransit = item.category === "logistics" && 
-          (item.name.toLowerCase().includes("drive") || 
-           item.name.toLowerCase().includes("transit") || 
-           item.name.toLowerCase().includes("taxi") ||
-           item.name.toLowerCase().includes("road"));
+          (itemName.includes("drive") || 
+           itemName.includes("transit") || 
+           itemName.includes("taxi") ||
+           itemName.includes("road"));
         
         if (isTransit) {
           const originalStartMins = parseTimeToMins(item.start_time);
@@ -3540,21 +3541,35 @@ ${daysSummary}
 
                   {showAgentTrace ? (
                     <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
-                      {agentLogs.map((log: any, idx: number) => (
-                        <div key={idx} className="border-l-2 border-emerald-400 pl-3.5 ml-1.5 space-y-1 relative text-left">
-                          <div className="absolute w-2 h-2 bg-emerald-500 rounded-full -left-[5px] top-1"></div>
-                          <div className="flex justify-between items-center text-[10px]">
-                            <span className="font-extrabold text-emerald-700 uppercase tracking-wider">{log.step}</span>
-                            <span className="text-slate-500 font-mono">{log.action.split('(')[0]}()</span>
+                      {agentLogs.map((log: any, idx: number) => {
+                        const stepTitle = log.step || log.title || `Agent Step ${idx + 1}`;
+                        const actionName = log.action ? `${log.action.split('(')[0]}()` : (log.timestamp ? `@${log.timestamp}` : "reAct()");
+                        const thoughtText = log.thought || log.detail || "Agent evaluated logistics constraint.";
+                        return (
+                          <div key={idx} className="border-l-2 border-emerald-400 pl-3.5 ml-1.5 space-y-1 relative text-left">
+                            <div className="absolute w-2 h-2 bg-emerald-500 rounded-full -left-[5px] top-1"></div>
+                            <div className="flex justify-between items-center text-[10px]">
+                              <span className="font-extrabold text-emerald-700 uppercase tracking-wider">{stepTitle}</span>
+                              <span className="text-slate-500 font-mono">{actionName}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 font-medium italic">Thought: "{thoughtText}"</p>
+                            {(log.action || log.observation || log.detail) && (
+                              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-[9px] text-slate-600">
+                                {log.action && (
+                                  <div>
+                                    <span className="text-indigo-600 font-bold">Action:</span> {log.action}
+                                  </div>
+                                )}
+                                {(log.observation || log.detail) && (
+                                  <div>
+                                    <span className="text-sky-600 font-bold">Observation:</span> {log.observation || log.detail}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <p className="text-[11px] text-slate-600 font-medium italic">Thought: "{log.thought}"</p>
-                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-[9px] text-slate-600">
-                            <span className="text-indigo-600 font-bold">Action:</span> {log.action}
-                            <br />
-                            <span className="text-sky-600 font-bold">Observation:</span> {log.observation}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-[10px] text-slate-500 italic">
