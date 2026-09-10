@@ -22,10 +22,26 @@ export async function POST(req: Request) {
       if (diff > 0) nights = diff;
     } catch {}
 
+    const DEST_COORDS: Record<string, [number, number]> = {
+      manali: [32.2396, 77.1887],
+      delhi: [28.6139, 77.2090],
+      jaipur: [26.9124, 75.7873],
+      udaipur: [24.5854, 73.7125],
+      goa: [15.2993, 74.1240],
+      mumbai: [19.0760, 72.8777],
+      bengaluru: [12.9716, 77.5946],
+      shimla: [31.1048, 77.1734],
+      rishikesh: [30.0869, 78.2676],
+      agra: [27.1767, 78.0081]
+    };
+    const baseCoord = DEST_COORDS[destClean.toLowerCase()] || [32.2396, 77.1887];
+
     const hotels = [
       {
         id: `stay-${destClean.toLowerCase()}-1`,
         name: `${destClean} Grand Vista Boutique Resort`,
+        lat: Number((baseCoord[0] + 0.005).toFixed(4)),
+        lng: Number((baseCoord[1] + 0.004).toFixed(4)),
         category: "4-Star Luxury Mountain Resort",
         star_rating: 4.8,
         proximity_km: 0.8,
@@ -64,6 +80,8 @@ export async function POST(req: Request) {
       {
         id: `stay-${destClean.toLowerCase()}-2`,
         name: `${destClean} Pine Riverside Homestay & Chalet`,
+        lat: Number((baseCoord[0] - 0.006).toFixed(4)),
+        lng: Number((baseCoord[1] - 0.003).toFixed(4)),
         category: "Authentic Local Heritage Homestay",
         star_rating: 4.7,
         proximity_km: 1.2,
@@ -94,6 +112,8 @@ export async function POST(req: Request) {
       {
         id: `stay-${destClean.toLowerCase()}-3`,
         name: `The Whispering Peaks Luxury Retreat`,
+        lat: Number((baseCoord[0] + 0.012).toFixed(4)),
+        lng: Number((baseCoord[1] + 0.008).toFixed(4)),
         category: "5-Star Ultra-Luxury Sanctuary",
         star_rating: 4.9,
         proximity_km: 2.1,

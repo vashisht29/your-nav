@@ -3730,10 +3730,12 @@ ${daysSummary}
                   </div>
                   <div className="flex-1">
                     <MapComponent
-                      hotel={itinerary.selected_hotel}
+                      hotel={itinerary.selected_hotel || selectedHotel}
                       days={itinerary.days}
                       emergencyServices={emergencyServices.length > 0 ? emergencyServices : null}
-                      flight={transportMode === "flight" ? selectedTransit : null}
+                      flight={transportMode === "flight" ? (selectedTransit || itinerary.selected_transit) : null}
+                      destCoords={itinerary.lat && itinerary.lng ? { lat: itinerary.lat, lng: itinerary.lng } : null}
+                      destinationName={destination}
                     />
                   </div>
                 </div>

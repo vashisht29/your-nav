@@ -34,6 +34,31 @@ export async function POST(req: Request) {
     const totalCost = transitCost + stayCost + foodCost + activitiesCost;
     const savings = Math.max(0, budget - totalCost);
 
+    const DEST_COORDS: Record<string, [number, number]> = {
+      manali: [32.2396, 77.1887],
+      delhi: [28.6139, 77.2090],
+      jaipur: [26.9124, 75.7873],
+      udaipur: [24.5854, 73.7125],
+      goa: [15.2993, 74.1240],
+      mumbai: [19.0760, 72.8777],
+      bengaluru: [12.9716, 77.5946],
+      shimla: [31.1048, 77.1734],
+      rishikesh: [30.0869, 78.2676],
+      agra: [27.1767, 78.0081]
+    };
+    const destCoord = DEST_COORDS[destClean.toLowerCase()] || [32.2396, 77.1887];
+
+    const safeHotel = selected_hotel ? {
+      ...selected_hotel,
+      lat: typeof selected_hotel.lat === "number" ? selected_hotel.lat : Number((destCoord[0] + 0.005).toFixed(4)),
+      lng: typeof selected_hotel.lng === "number" ? selected_hotel.lng : Number((destCoord[1] + 0.004).toFixed(4)),
+    } : {
+      name: `${destClean} Grand Vista Resort`,
+      lat: Number((destCoord[0] + 0.005).toFixed(4)),
+      lng: Number((destCoord[1] + 0.004).toFixed(4)),
+      total_stay_cost_inr: stayCost,
+    };
+
     const days: any[] = [];
     const themes = [
       { theme: "Arrival & Scenic Settling", tag: "Arrival" },
@@ -59,6 +84,8 @@ export async function POST(req: Request) {
           rating: 4.8,
           description: i === 1 ? `Direct departure corridor from ${origClean} to ${destClean}.` : `Explore iconic heritage lanes and cultural sights in ${destClean}.`,
           is_closed_alert: false,
+          lat: Number((destCoord[0] + 0.003).toFixed(4)),
+          lng: Number((destCoord[1] + 0.002).toFixed(4)),
         },
         {
           start_time: "01:00 PM",
@@ -69,16 +96,20 @@ export async function POST(req: Request) {
           rating: 4.6,
           description: "Handpicked regional delicacies and authentic local culinary lunch.",
           is_closed_alert: false,
+          lat: Number((destCoord[0] - 0.004).toFixed(4)),
+          lng: Number((destCoord[1] + 0.003).toFixed(4)),
         },
         {
           start_time: "03:30 PM",
           end_time: "05:30 PM",
-          name: i === 1 ? `Check in and unwind at ${selected_hotel?.name || 'Resort'}` : "Key Landmark & Panoramic Viewpoint Visit",
+          name: i === 1 ? `Check in and unwind at ${safeHotel.name || 'Resort'}` : "Key Landmark & Panoramic Viewpoint Visit",
           category: i === 1 ? "logistics" : "interests",
           cost_inr: 350,
           rating: 4.7,
           description: i === 1 ? `Smooth check-in, unpack and relax in mountain-view room.` : `Spectacular panoramic views and photography spot.`,
           is_closed_alert: false,
+          lat: Number((destCoord[0] + 0.006).toFixed(4)),
+          lng: Number((destCoord[1] - 0.005).toFixed(4)),
         },
         {
           start_time: "06:30 PM",
@@ -89,6 +120,8 @@ export async function POST(req: Request) {
           rating: 4.5,
           description: "Stroll through vibrant evening stalls, craft boutiques, and souvenir shops.",
           is_closed_alert: false,
+          lat: Number((destCoord[0] - 0.002).toFixed(4)),
+          lng: Number((destCoord[1] - 0.004).toFixed(4)),
         },
         {
           start_time: "08:45 PM",
@@ -99,6 +132,8 @@ export async function POST(req: Request) {
           rating: 4.9,
           description: "Fine dining dinner featuring authentic local dishes and live ambient music.",
           is_closed_alert: false,
+          lat: Number((destCoord[0] + 0.001).toFixed(4)),
+          lng: Number((destCoord[1] + 0.005).toFixed(4)),
         },
       ];
 
@@ -116,8 +151,8 @@ export async function POST(req: Request) {
     const responsePayload = {
       status: "Success",
       display_name: `${destClean}, India`,
-      lat: 28.6139,
-      lng: 77.2090,
+      lat: destCoord[0],
+      lng: destCoord[1],
       persona: "Cultural Explorer",
       days: days,
       itinerary: {
@@ -131,7 +166,7 @@ export async function POST(req: Request) {
         days,
       },
       selected_transit,
-      selected_hotel,
+      selected_hotel: safeHotel,
       total_cost_inr: totalCost,
       cost_breakdown: {
         allocated_budget: budget,
