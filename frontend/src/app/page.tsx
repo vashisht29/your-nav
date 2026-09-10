@@ -33,7 +33,8 @@ import {
   Info,
   Wrench,
   Utensils,
-  Terminal
+  Terminal,
+  RefreshCw
 } from "lucide-react";
 
 import AppleGlobalNav from "./components/AppleGlobalNav";
@@ -1652,7 +1653,21 @@ ${daysSummary}
           if (data.cost_breakdown?.allocated_budget && data.cost_breakdown.allocated_budget > budget) {
             setBudget(data.cost_breakdown.allocated_budget);
           }
-          setItinerary(data);
+          const normalizedItinerary = {
+            ...data,
+            ...(data.itinerary && typeof data.itinerary === "object" ? data.itinerary : {}),
+            days: data.days || data.itinerary?.days || [],
+            total_cost_inr: data.total_cost_inr || data.itinerary?.total_estimated_cost || data.cost_breakdown?.total || data.cost_breakdown?.total_cost || 0,
+            cost_breakdown: data.cost_breakdown || data.itinerary?.cost_breakdown || {
+              allocated_budget: budget,
+              remaining_balance: 0,
+              stays: 0,
+              transport: 0,
+              food: 0,
+              activities: 0,
+            },
+          };
+          setItinerary(normalizedItinerary);
           setAgentLogs(data.agent_logs || []);
           setStep(5);
         }
@@ -1670,22 +1685,37 @@ ${daysSummary}
     if (!itinerary || !itinerary.days) return;
     setDelayLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/trip/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event: "flight_delay",
-          delay_minutes: 180,
-          current_days: itinerary.days
-        })
-      });
-      const data = await res.json();
-      if (res.status === 200 && data.itinerary) {
-        setItinerary({
-          ...itinerary,
-          days: data.itinerary.days
+      let res;
+      try {
+        res = await fetch("http://localhost:8000/api/trip/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "flight_delay",
+            delay_minutes: 180,
+            current_days: itinerary.days
+          })
         });
-        setAgentLogs(data.agent_logs || []);
+      } catch {
+        res = await fetch("/api/trip/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "flight_delay",
+            delay_minutes: 180,
+            current_days: itinerary.days
+          })
+        });
+      }
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.itinerary) {
+          setItinerary({
+            ...itinerary,
+            days: data.itinerary.days
+          });
+          setAgentLogs(data.agent_logs || []);
+        }
       }
     } catch (e) {
       console.error("Delay simulation failed:", e);
@@ -1716,7 +1746,8 @@ ${daysSummary}
     
     updated.days.forEach((day: any) => {
       let accumulatedShiftMins = 0;
-      day.schedule = day.schedule.map((item: any) => {
+      const sched = day.schedule || day.timeline || [];
+      day.schedule = sched.map((item: any) => {
         const itemName = (item.name || "").toLowerCase();
         const isTransit = item.category === "logistics" && 
           (itemName.includes("drive") || 
@@ -3515,7 +3546,27 @@ ${daysSummary}
                   <HeartHandshake className="text-sky-600 w-4 h-4" /> {t.explanation}
                 </h3>
                 <div className="text-slate-700 text-xs leading-relaxed whitespace-pre-line font-normal">
-                  {itinerary.explanation}
+                  {typeof itinerary.explanation === "string" ? (
+                    itinerary.explanation
+                  ) : itinerary.explanation && typeof itinerary.explanation === "object" ? (
+                    <div className="space-y-2">
+                      {itinerary.explanation.verdict && (
+                        <p className="font-semibold text-slate-900">{String(itinerary.explanation.verdict)}</p>
+                      )}
+                      {itinerary.explanation.summary && (
+                        <p className="text-slate-700">{String(itinerary.explanation.summary)}</p>
+                      )}
+                      {Array.isArray(itinerary.explanation.highlights) && (
+                        <ul className="list-disc list-inside space-y-1 text-slate-600">
+                          {itinerary.explanation.highlights.map((h: any, hIdx: number) => (
+                            <li key={hIdx}>{typeof h === "string" ? h : JSON.stringify(h)}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ) : (
+                    "Custom AI-curated itinerary crafted for optimal travel and comfort."
+                  )}
                 </div>
               </div>
 
@@ -3557,12 +3608,12 @@ ${daysSummary}
                               <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-[9px] text-slate-600">
                                 {log.action && (
                                   <div>
-                                    <span className="text-indigo-600 font-bold">Action:</span> {log.action}
+                                    <span className="text-indigo-600 font-bold">Action:</span> {typeof log.action === "string" ? log.action : JSON.stringify(log.action)}
                                   </div>
                                 )}
                                 {(log.observation || log.detail) && (
                                   <div>
-                                    <span className="text-sky-600 font-bold">Observation:</span> {log.observation || log.detail}
+                                    <span className="text-sky-600 font-bold">Observation:</span> {typeof (log.observation || log.detail) === "string" ? (log.observation || log.detail) : JSON.stringify(log.observation || log.detail)}
                                   </div>
                                 )}
                               </div>
@@ -3589,45 +3640,45 @@ ${daysSummary}
                     <div className="flex items-center gap-3">
                       {(transportMode === "self-drive" || selectedTransit?.is_multi_leg) && (
                         <div className="flex items-center gap-1.5 border border-slate-200 px-2.5 py-1 rounded-xl bg-slate-50 text-[10px] font-bold">
-                          <span className="text-slate-500">Pace / Traffic:</span>
-                          <input
-                            type="range"
-                            min="0.7"
-                            max="1.5"
-                            step="0.1"
-                            value={speedMultiplier}
-                            onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
-                            className="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          />
-                          <span className={speedMultiplier > 1.0 ? "text-emerald-600" : speedMultiplier < 1.0 ? "text-rose-600" : "text-slate-700"}>
-                            {speedMultiplier}x
-                          </span>
+                          <Compass className="w-3.5 h-3.5 text-sky-600 animate-spin" />
+                          <span className="text-slate-800">Dynamic Re-routing Active</span>
                         </div>
                       )}
 
+                      {/* Travel Delay Simulator */}
+                      <button
+                        onClick={handleSimulateDelay}
+                        disabled={delayLoading}
+                        className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] px-2.5 py-1 rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${delayLoading ? "animate-spin" : ""}`} />
+                        {delayLoading ? "Recalibrating..." : "Simulate Travel Delay (+3h)"}
+                      </button>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    {(itinerary.days || []).map((day: any) => {
-                      const isExpanded = expandedDay === day.day_number;
+                    {(itinerary.days || []).map((day: any, dIdx: number) => {
+                      const dayNumber = day.day_number || day.day || (dIdx + 1);
+                      const isExpanded = expandedDay === dayNumber;
+                      const scheduleList = day.schedule || day.timeline || [];
                       return (
-                        <div key={day.day_number} className="border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs">
+                        <div key={dayNumber} className="border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs">
                           <button
-                            onClick={() => setExpandedDay(isExpanded ? null : day.day_number)}
+                            onClick={() => setExpandedDay(isExpanded ? null : dayNumber)}
                             className="w-full bg-slate-50 hover:bg-slate-100 p-3 flex justify-between items-center text-xs font-extrabold text-slate-900 border-b border-slate-200/80 transition-all cursor-pointer"
                           >
                             <span className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-sky-500" />
-                              DAY {day.day_number}
+                              DAY {dayNumber}
                             </span>
                             <span className="text-[10px] text-slate-500 font-medium">
-                              {day.schedule?.length || 0} items (click to toggle)
+                              {scheduleList.length} items (click to toggle)
                             </span>
                           </button>
 
                           {isExpanded && (
                             <div className="p-3 space-y-3 bg-white divide-y divide-slate-100">
-                              {(day.schedule || []).map((item: any, idx: number) => {
+                              {scheduleList.map((item: any, idx: number) => {
                                 const isLogistics = item.category === "logistics";
                                 const isFood = item.category === "food";
                                 return (
@@ -3643,17 +3694,17 @@ ${daysSummary}
                                           }`}>
                                             {isLogistics ? t.logisticsTitle : isFood ? t.foodTitle : t.interests}
                                           </span>
-                                          <span className="text-[10px] text-slate-400 font-mono">({item.start_time})</span>
+                                          <span className="text-[10px] text-slate-400 font-mono">({item.start_time || item.time || "09:00 AM"})</span>
                                         </div>
                                         <h5 className={`font-extrabold text-xs flex items-center gap-1 truncate ${item.is_closed_alert ? "text-rose-600" : "text-slate-900"}`}>
-                                          {item.name} {item.rating ? <span className="text-[10px] text-amber-600 font-normal flex-shrink-0">({(item.rating < 1.0 ? item.rating * 5.0 : item.rating).toFixed(1)} ⭐)</span> : ""}
+                                          {item.name || item.activity || "Sightseeing Destination"} {item.rating ? <span className="text-[10px] text-amber-600 font-normal flex-shrink-0">({(item.rating < 1.0 ? item.rating * 5.0 : item.rating).toFixed(1)} ⭐)</span> : ""}
                                         </h5>
-                                        {item.description && <p className={`text-[10px] leading-relaxed ${item.is_closed_alert ? "text-rose-600 font-semibold" : "text-slate-600"}`}>{item.description}</p>}
+                                        {(item.description || item.location) && <p className={`text-[10px] leading-relaxed ${item.is_closed_alert ? "text-rose-600 font-semibold" : "text-slate-600"}`}>{item.description || item.location}</p>}
                                       </div>
                                     </div>
-                                    {item.cost_inr > 0 && (
+                                    {(item.cost_inr > 0 || item.cost > 0) && (
                                       <span className="text-[9px] text-slate-700 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg flex-shrink-0">
-                                        ₹{item.cost_inr}
+                                        ₹{item.cost_inr || item.cost}
                                       </span>
                                     )}
                                   </div>
