@@ -43,9 +43,41 @@ export async function POST(req: Request) {
           },
           ground_transfer_intelligence: {
             has_ground_transfer: true,
-            transfer_type: "Scenic Highway Cab",
-            transfer_duration: "35 mins",
-            transfer_cost_inr: 950,
+            hub_airport: `${origClean} Hub`,
+            distance_km: 32.5,
+            summary: `Flight lands at ${destClean} Airport Hub • ~32.5 km scenic onward highway connection to central destinations.`,
+            hotel_last_mile: "Auto-rickshaws (₹80-120) and app cabs operate 24x7 from terminal exit.",
+            options: [
+              {
+                mode: "cab",
+                title: "Airport Pre-Paid Taxi / Cab",
+                icon: "🚕",
+                estimated_fare_range: "₹850 - ₹1,200",
+                duration: "35 mins",
+                pricing_type: "Pre-Paid Booth Fixed",
+                bargaining_tip: "Use the government pre-paid booth inside arrival gate for transparent receipt-based fare.",
+                availability: "24x7 Outside Arrival Gate",
+                is_recommended: true,
+                schedule_services: [
+                  { name: "Prime Sedan Cab", timings: "24x7 On Demand", route_stops: "Airport ➔ Direct Hotel Drop", fare: "₹950", capacity: "3-4 Pax" },
+                  { name: "SUV Maxi Cab", timings: "24x7 On Demand", route_stops: "Airport ➔ Direct Hotel Drop", fare: "₹1,450", capacity: "6 Pax" }
+                ]
+              },
+              {
+                mode: "bus",
+                title: "Airport AC Electric Shuttle Bus",
+                icon: "🚌",
+                estimated_fare_range: "₹90 - ₹150 / seat",
+                duration: "55 mins",
+                pricing_type: "Fixed Government Transit",
+                bargaining_tip: "Conductor issues direct QR ticket on board.",
+                availability: "06:00 AM - 11:30 PM (Every 25 mins)",
+                is_recommended: false,
+                schedule_services: [
+                  { name: "City Express EV Shuttle", timings: "Every 25 mins", route_stops: "Terminal 2 ➔ Highway ➔ City Central", fare: "₹110 / seat", capacity: "AC Electric Bus" }
+                ]
+              }
+            ]
           },
           class_options: [
             {
@@ -88,9 +120,40 @@ export async function POST(req: Request) {
           },
           ground_transfer_intelligence: {
             has_ground_transfer: true,
-            transfer_type: "Chauffeured Sedan",
-            transfer_duration: "35 mins",
-            transfer_cost_inr: 1400,
+            hub_airport: `${origClean} Hub`,
+            distance_km: 32.5,
+            summary: `Flight lands at ${destClean} Airport Hub • Premium chauffeured sedan or express highway cab.`,
+            hotel_last_mile: "Terminal concierge can arrange direct hotel portage.",
+            options: [
+              {
+                mode: "cab",
+                title: "Chauffeured Executive Sedan",
+                icon: "🚕",
+                estimated_fare_range: "₹1,200 - ₹1,600",
+                duration: "30 mins",
+                pricing_type: "Fixed Executive Fare",
+                bargaining_tip: "Fixed premium chauffeur rate with bottled water and expressway toll included.",
+                availability: "24x7 Priority Pick-up",
+                is_recommended: true,
+                schedule_services: [
+                  { name: "Executive Sedan", timings: "24x7 On Demand", route_stops: "Airport Terminal ➔ Direct Hotel Porch", fare: "₹1,400", capacity: "3-4 Pax" }
+                ]
+              },
+              {
+                mode: "bus",
+                title: "Airport Express Transit Shuttle",
+                icon: "🚌",
+                estimated_fare_range: "₹120 / seat",
+                duration: "50 mins",
+                pricing_type: "Fixed Public Tariff",
+                bargaining_tip: "Direct transit line to city metro terminal.",
+                availability: "Every 30 mins",
+                is_recommended: false,
+                schedule_services: [
+                  { name: "Metro Connector Shuttle", timings: "Every 30 mins", route_stops: "Airport Gate ➔ Metro Junction", fare: "₹120", capacity: "Low-Floor AC Bus" }
+                ]
+              }
+            ]
           },
           class_options: [
             {
